@@ -81,21 +81,22 @@ export default function ChartViewer({ timeComplexity }) {
         viewBox={`0 0 ${width} ${height}`}
         width="100%"
         height="100%"
-        className="bg-black/30 rounded-md overflow-visible"
+        className="rounded-md overflow-visible"
+        style={{ backgroundColor: "var(--color-chart-bg)" }}
       >
         {/* Grid lines */}
-        <line x1={paddingLeft} y1={height - paddingBottom} x2={width - 5} y2={height - paddingBottom} stroke="rgba(255,255,255,0.15)" strokeWidth={1} />
-        <line x1={paddingLeft} y1={10} x2={paddingLeft} y2={height - paddingBottom} stroke="rgba(255,255,255,0.15)" strokeWidth={1} />
+        <line x1={paddingLeft} y1={height - paddingBottom} x2={width - 5} y2={height - paddingBottom} stroke="var(--color-chart-axis)" strokeWidth={1} />
+        <line x1={paddingLeft} y1={10} x2={paddingLeft} y2={height - paddingBottom} stroke="var(--color-chart-axis)" strokeWidth={1} />
         
         {/* Y-Axis labels */}
-        <text x={paddingLeft - 10} y={height - paddingBottom} fill="var(--color-text-dark)" fontSize={8} textAnchor="end">O(1)</text>
-        <text x={paddingLeft - 10} y={height / 2} fill="var(--color-text-dark)" fontSize={8} textAnchor="end">Operations</text>
-        <text x={paddingLeft - 10} y={20} fill="var(--color-text-dark)" fontSize={8} textAnchor="end">O(N²)</text>
+        <text x={paddingLeft - 10} y={height - paddingBottom} fill="var(--color-chart-text)" fontSize={8} textAnchor="end">O(1)</text>
+        <text x={paddingLeft - 10} y={height / 2} fill="var(--color-chart-text)" fontSize={8} textAnchor="end">Operations</text>
+        <text x={paddingLeft - 10} y={20} fill="var(--color-chart-text)" fontSize={8} textAnchor="end">O(N²)</text>
 
         {/* X-Axis labels */}
-        <text x={paddingLeft} y={height - 5} fill="var(--color-text-dark)" fontSize={8} textAnchor="middle">1</text>
-        <text x={width / 2 + paddingLeft / 2} y={height - 5} fill="var(--color-text-dark)" fontSize={8} textAnchor="middle">Input Size (N)</text>
-        <text x={width - 15} y={height - 5} fill="var(--color-text-dark)" fontSize={8} textAnchor="middle">N = 50</text>
+        <text x={paddingLeft} y={height - 5} fill="var(--color-chart-text)" fontSize={8} textAnchor="middle">1</text>
+        <text x={width / 2 + paddingLeft / 2} y={height - 5} fill="var(--color-chart-text)" fontSize={8} textAnchor="middle">Input Size (N)</text>
+        <text x={width - 15} y={height - 5} fill="var(--color-chart-text)" fontSize={8} textAnchor="middle">N = 50</text>
 
         {/* Curves */}
         {curves.map((curve) => {

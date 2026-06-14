@@ -131,21 +131,21 @@ export default function OptimizerPanel({
       <h4 className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">
         <Sparkles size={12} className="text-primary inline mr-1" /> Side-by-Side Comparison
       </h4>
-      <div className="grid grid-cols-2 gap-3 font-mono text-[11px] bg-black/15 dark:bg-white/8 rounded-lg border border-border-color overflow-hidden mb-3">
+      <div className="diff-container grid grid-cols-2 gap-3 font-mono text-[11px] rounded-lg overflow-hidden mb-3">
         <div className="flex flex-col">
-          <div className="bg-white/2 p-1.5 px-2.5 text-[10px] font-semibold border-b border-border-color text-text-muted border-l-2 border-accent-red">
+          <div className="diff-header-left p-1.5 px-2.5 text-[10px] font-semibold border-b border-l-2">
             <span>Your Code ({timeComplexity || "O(N²)"})</span>
           </div>
-          <div className="p-2.5 whitespace-pre bg-black/25 max-h-[180px] overflow-y-auto text-gray-200 dark:text-gray-800">
+          <div className="diff-body-left p-2.5 whitespace-pre max-h-[180px] overflow-y-auto">
             <code>{originalCode}</code>
           </div>
         </div>
 
         <div className="flex flex-col">
-          <div className="bg-white/2 p-1.5 px-2.5 text-[10px] font-semibold border-b border-border-color text-text-muted border-l-2 border-accent-green">
+          <div className="diff-header-right p-1.5 px-2.5 text-[10px] font-semibold border-b border-l-2">
             <span>Optimized Code ({optimizedComplexity})</span>
           </div>
-          <div className="p-2.5 whitespace-pre bg-black/25 max-h-[180px] overflow-y-auto text-gray-200 dark:text-gray-800">
+          <div className="diff-body-right p-2.5 whitespace-pre max-h-[180px] overflow-y-auto">
             <code>{optimizedCode || originalCode}</code>
           </div>
         </div>
@@ -172,11 +172,12 @@ export default function OptimizerPanel({
           viewBox={`0 0 ${width} ${height}`}
           width="100%"
           height="100%"
-          className="bg-black/35 rounded-md overflow-visible"
+          className="rounded-md overflow-visible"
+          style={{ backgroundColor: "var(--color-chart-bg)" }}
         >
           {/* Axis */}
-          <line x1={paddingLeft} y1={height - paddingBottom} x2={width - 5} y2={height - paddingBottom} stroke="rgba(255,255,255,0.15)" strokeWidth={1} />
-          <line x1={paddingLeft} y1={10} x2={paddingLeft} y2={height - paddingBottom} stroke="rgba(255,255,255,0.15)" strokeWidth={1} />
+          <line x1={paddingLeft} y1={height - paddingBottom} x2={width - 5} y2={height - paddingBottom} stroke="var(--color-chart-axis)" strokeWidth={1} />
+          <line x1={paddingLeft} y1={10} x2={paddingLeft} y2={height - paddingBottom} stroke="var(--color-chart-axis)" strokeWidth={1} />
 
           {/* Curves */}
           <path
