@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Settings, Award, CreditCard, Sparkles, Coins, Sun, Moon, LogIn, LogOut, User } from "lucide-react";
+import { Settings, Award, CreditCard, Sparkles, Coins, Sun, Moon, LogIn, LogOut, User, Clock, Zap } from "lucide-react";
 import { getApiKey, saveApiKey } from "../geminiService";
 
 export default function Header({
@@ -11,7 +11,9 @@ export default function Header({
   setTheme,
   userContact,
   onOpenLogin,
-  onLogout
+  onLogout,
+  isSidebarOpen,
+  onToggleSidebar
 }) {
   const [showSettings, setShowSettings] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState(getApiKey());
@@ -27,7 +29,7 @@ export default function Header({
   };
 
   return (
-    <header className="glass-panel flex justify-between items-center p-3 px-4 rounded-xl">
+    <header className="glass-panel flex justify-between items-center p-3 px-4 rounded-xl relative z-50">
       <div className="flex items-center gap-2">
         <Sparkles size={22} className="text-primary" />
         <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-text-main via-primary to-secondary bg-clip-text text-transparent">
@@ -47,6 +49,20 @@ export default function Header({
         >
           {theme === "dark" ? <Sun size={15} className="text-accent-yellow" /> : <Moon size={15} className="text-primary" />}
         </button>
+ 
+        {/* Ads Toggle Button (Only for Paid Premium users who start collapsed by default) */}
+        {userTier === "premium" && (
+          <button
+            className={`bg-white/5 dark:bg-black/3 border text-text-main p-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15 transition-all duration-200 flex items-center gap-1.5 ${
+              isSidebarOpen ? "border-primary text-primary bg-primary/5" : "border-border-color"
+            }`}
+            onClick={onToggleSidebar}
+            title={isSidebarOpen ? "Hide Sponsored Ads" : "Show Sponsored Ads"}
+          >
+            <Zap size={14} className={isSidebarOpen ? "text-primary animate-pulse" : "text-text-muted"} />
+            <span>{isSidebarOpen ? "Hide Ads" : "Show Ads"}</span>
+          </button>
+        )}
 
         {/* User Session Profile Section */}
         {userContact ? (

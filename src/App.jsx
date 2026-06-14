@@ -6,6 +6,7 @@ import EditorPanel from "./components/EditorPanel";
 import ChartViewer from "./components/ChartViewer";
 import OptimizerPanel from "./components/OptimizerPanel";
 import SimulatorPanel from "./components/SimulatorPanel";
+import HistorySection from "./components/HistorySection";
 import { mockAlgorithms } from "./mockData";
 import { hasApiKey, analyzeCodeWithGemini } from "./geminiService";
 
@@ -62,6 +63,10 @@ export default function App() {
   const [isSendingOtp, setIsSendingOtp] = useState(false);
 
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    const savedTier = localStorage.getItem("BIGO_USER_TIER") || "anonymous";
+    return savedTier !== "premium";
+  });
 
   const [analysisResult, setAnalysisResult] = useState({
     timeComplexity: "O(N²)",
@@ -78,6 +83,10 @@ export default function App() {
     document.body.className = theme === "light" ? "light-theme" : "";
     localStorage.setItem("BIGO_THEME", theme);
   }, [theme]);
+
+  useEffect(() => {
+    setIsSidebarOpen(userTier !== "premium");
+  }, [userTier]);
 
   useEffect(() => {
     localStorage.setItem("BIGO_USER_TIER", userTier);
@@ -216,7 +225,7 @@ export default function App() {
     setActiveStepIndex(0);
     setActiveSimLine(null);
     
-    if (userContact) {
+    if (userContact && userTier !== "anonymous") {
       addToHistory(time, space, mockResult);
     }
   };
@@ -265,7 +274,7 @@ export default function App() {
         setActiveStepIndex(0);
         setActiveSimLine(null);
         
-        if (userContact) {
+        if (userContact && userTier !== "anonymous") {
           addToHistory(algo.timeComplexity, algo.spaceComplexity, algo);
         }
       }
@@ -283,7 +292,7 @@ export default function App() {
         setAnalysisResult(res);
         setActiveStepIndex(0);
         
-        if (userContact) {
+        if (userContact && userTier !== "anonymous") {
           addToHistory(res.timeComplexity, res.spaceComplexity, res);
         }
         alert("Gemini AI Analysis complete!");
@@ -413,6 +422,27 @@ export default function App() {
     alert("Logged out successfully.");
   };
 
+  const handleDemoSetTier = (tier) => {
+    setUserTier(tier);
+    if (tier === "anonymous") {
+      setUserContact(null);
+      setHistory([]);
+    } else if (tier === "free") {
+      if (!userContact || userContact === "+919988776655") {
+        setUserContact("alex.coder@gmail.com");
+        const existing = usersDb.find((u) => u.contact === "alex.coder@gmail.com");
+        if (existing) setTokens(existing.tokens);
+      }
+    } else if (tier === "premium") {
+      if (!userContact || userContact === "alex.coder@gmail.com") {
+        setUserContact("+919988776655");
+        const existing = usersDb.find((u) => u.contact === "+919988776655");
+        if (existing) setTokens(existing.tokens);
+      }
+    }
+  };
+
+
   const handleLoadHistory = (item) => {
     setCode(item.code);
     setSelectedLanguage(item.language);
@@ -429,6 +459,10 @@ export default function App() {
     });
     setActiveStepIndex(0);
     setActiveTab("complexity");
+  };
+
+  const handleDeleteHistory = (idx) => {
+    setHistory((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const handleAdminToggleTier = (contact) => {
@@ -472,19 +506,24 @@ export default function App() {
   };
 
   return (
-    <div className="grid grid-cols-[200px_1fr] min-h-screen gap-4 p-4 max-w-[1550px] mx-auto max-lg:grid-cols-1">
+    <div className={`grid min-h-screen gap-4 p-4 max-w-[1550px] mx-auto max-lg:grid-cols-1 ${
+      isSidebarOpen ? "grid-cols-[200px_1fr]" : "grid-cols-1"
+    }`}>
       {/* Left Sidebar Ad + History */}
-      <AdSidebar
-        history={history}
-        onLoadHistory={handleLoadHistory}
-        userTier={userTier}
-      />
+      {isSidebarOpen && (
+        <AdSidebar
+          history={history}
+          onLoadHistory={handleLoadHistory}
+          userTier={userTier}
+          onUpgrade={() => setShowCheckout(true)}
+        />
+      )}
 
       {/* Main App Workspace */}
       <main className="flex flex-col gap-4 overflow-hidden">
         <Header
           userTier={userTier}
-          setUserTier={setUserTier}
+          setUserTier={handleDemoSetTier}
           tokens={tokens}
           onOpenCheckout={() => setShowCheckout(true)}
           theme={theme}
@@ -495,6 +534,8 @@ export default function App() {
             setShowLogin(true);
           }}
           onLogout={handleLogout}
+          isSidebarOpen={isSidebarOpen}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         />
 
         <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1">
@@ -619,6 +660,16 @@ export default function App() {
             )}
           </div>
         </div>
+
+        {/* Full-width History Section (visible to logged-in Free/Premium users) */}
+        {userContact && userTier !== "anonymous" && (
+          <HistorySection
+            history={history}
+            onLoadHistory={handleLoadHistory}
+            onDeleteHistory={handleDeleteHistory}
+            userTier={userTier}
+          />
+        )}
 
         {/* Collapsible Admin User Management Drawer */}
         <div className="mt-4 border-t border-border-color pt-4">
