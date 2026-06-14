@@ -10,12 +10,10 @@ import { mockAlgorithms } from "./mockData";
 import { hasApiKey, analyzeCodeWithGemini } from "./geminiService";
 
 export default function App() {
-  // Theme state
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem("BIGO_THEME") || "dark";
   });
 
-  // User auth state
   const [userTier, setUserTier] = useState(() => {
     return localStorage.getItem("BIGO_USER_TIER") || "anonymous";
   });
@@ -27,12 +25,10 @@ export default function App() {
     return localStorage.getItem("BIGO_USER_CONTACT") || null;
   });
   
-  // Users local database for table administration
   const [usersDb, setUsersDb] = useState(() => {
     const saved = localStorage.getItem("BIGO_USERS_DB");
     if (saved) return JSON.parse(saved);
     
-    // Default initial mock database
     const defaults = [
       { contact: "alex.coder@gmail.com", tier: "free", tokens: 0, signup: "2026-06-12 14:32" },
       { contact: "+919988776655", tier: "premium", tokens: 70, signup: "2026-06-12 18:15" },
@@ -42,14 +38,13 @@ export default function App() {
     return defaults;
   });
 
-  // History list state
   const [history, setHistory] = useState(() => {
     const saved = localStorage.getItem("BIGO_HISTORY");
     return saved ? JSON.parse(saved) : [];
   });
 
   const [selectedTemplate, setSelectedTemplate] = useState("bubble_sort");
-  const [selectedLanguage, setSelectedLanguage] = useState("auto"); // Default is auto-detect
+  const [selectedLanguage, setSelectedLanguage] = useState("auto");
   const [detectedLanguage, setDetectedLanguage] = useState("javascript");
   const [code, setCode] = useState("");
   const [activeTab, setActiveTab] = useState("complexity");
@@ -60,14 +55,12 @@ export default function App() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [checkoutOption, setCheckoutOption] = useState("subscription");
 
-  // Login Modal states
   const [showLogin, setShowLogin] = useState(false);
-  const [loginStep, setLoginStep] = useState("input"); // 'input' | 'otp'
+  const [loginStep, setLoginStep] = useState("input");
   const [contactInput, setContactInput] = useState("");
   const [otpInput, setOtpInput] = useState("");
   const [isSendingOtp, setIsSendingOtp] = useState(false);
 
-  // Collapsible Admin drawer state
   const [isAdminOpen, setIsAdminOpen] = useState(false);
 
   const [analysisResult, setAnalysisResult] = useState({
@@ -81,13 +74,11 @@ export default function App() {
     quiz: []
   });
 
-  // Sync theme class with body element
   useEffect(() => {
     document.body.className = theme === "light" ? "light-theme" : "";
     localStorage.setItem("BIGO_THEME", theme);
   }, [theme]);
 
-  // Sync state changes back to localStorage
   useEffect(() => {
     localStorage.setItem("BIGO_USER_TIER", userTier);
     localStorage.setItem("BIGO_TOKENS", tokens.toString());
@@ -100,7 +91,6 @@ export default function App() {
     }
   }, [userTier, tokens, userContact, history, usersDb]);
 
-  // Load initial template on mount
   useEffect(() => {
     const defaultAlgo = mockAlgorithms.find((a) => a.id === "bubble_sort");
     if (defaultAlgo) {
@@ -119,7 +109,6 @@ export default function App() {
     }
   }, []);
 
-  // Sync simulation highlights
   useEffect(() => {
     if (activeTab === "simulator" && analysisResult?.simulation?.length > 0) {
       const step = analysisResult.simulation[activeStepIndex];
@@ -131,7 +120,6 @@ export default function App() {
     }
   }, [activeStepIndex, activeTab, analysisResult]);
 
-  // Language auto-detection engine
   useEffect(() => {
     if (selectedLanguage === "auto" && code) {
       const detected = detectLanguage(code);
@@ -159,7 +147,6 @@ export default function App() {
       return "javascript";
     }
     
-    // Quick regex fallback checks
     if (/def\s+\w+\(/.test(sourceCode)) return "python";
     if (/#include\s+<\w+>/.test(sourceCode)) return "cpp";
     
@@ -229,7 +216,6 @@ export default function App() {
     setActiveStepIndex(0);
     setActiveSimLine(null);
     
-    // Add to history if logged in
     if (userContact) {
       addToHistory(time, space, mockResult);
     }
@@ -259,7 +245,7 @@ export default function App() {
       quiz: result.quiz
     };
 
-    setHistory((prev) => [newItem, ...prev.slice(0, 19)]); // Limit to 20 history records
+    setHistory((prev) => [newItem, ...prev.slice(0, 19)]);
   };
 
   const handleAnalyze = async () => {
@@ -329,10 +315,8 @@ export default function App() {
         setShowCheckout(true);
         return;
       }
-      // Deduct one token
       setTokens((t) => {
         const newCount = t - 1;
-        // Update tokens inside usersDb table too
         updateDbUserTokens(userContact, newCount);
         return newCount;
       });
@@ -377,7 +361,6 @@ export default function App() {
     setShowCheckout(false);
   };
 
-  // Login triggers
   const handleSendOtp = () => {
     if (!contactInput.trim()) {
       alert("Please enter a valid email address or mobile number.");
@@ -397,16 +380,13 @@ export default function App() {
       return;
     }
 
-    // Login successful
     setUserContact(contactInput);
     
-    // Check if user exists in database
     const existing = usersDb.find((u) => u.contact === contactInput);
     if (existing) {
       setUserTier(existing.tier);
       setTokens(existing.tokens);
     } else {
-      // Create new user in users database
       const newUser = {
         contact: contactInput,
         tier: "free",
@@ -433,7 +413,6 @@ export default function App() {
     alert("Logged out successfully.");
   };
 
-  // History load
   const handleLoadHistory = (item) => {
     setCode(item.code);
     setSelectedLanguage(item.language);
@@ -452,7 +431,6 @@ export default function App() {
     setActiveTab("complexity");
   };
 
-  // Admin Dashboard Actions
   const handleAdminToggleTier = (contact) => {
     setUsersDb((prev) =>
       prev.map((u) => {
@@ -460,7 +438,6 @@ export default function App() {
           const nextTier = u.tier === "free" ? "premium" : "free";
           const nextTokens = nextTier === "premium" ? 70 : 0;
           
-          // Update active states if this is the currently logged in user
           if (contact === userContact) {
             setUserTier(nextTier);
             setTokens(nextTokens);
@@ -495,7 +472,7 @@ export default function App() {
   };
 
   return (
-    <div className="app-container">
+    <div className="grid grid-cols-[200px_1fr] min-h-screen gap-4 p-4 max-w-[1550px] mx-auto max-lg:grid-cols-1">
       {/* Left Sidebar Ad + History */}
       <AdSidebar
         history={history}
@@ -504,7 +481,7 @@ export default function App() {
       />
 
       {/* Main App Workspace */}
-      <main className="main-workspace">
+      <main className="flex flex-col gap-4 overflow-hidden">
         <Header
           userTier={userTier}
           setUserTier={setUserTier}
@@ -520,7 +497,7 @@ export default function App() {
           onLogout={handleLogout}
         />
 
-        <div className="dashboard-grid">
+        <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1">
           {/* Editor Sandbox Panel */}
           <EditorPanel
             code={code}
@@ -540,24 +517,30 @@ export default function App() {
           />
 
           {/* Analysis Tab Panel */}
-          <div className="glass-panel" style={{ display: "flex", flexDirection: "column", minHeight: "540px" }}>
-            <div className="tabs-header">
+          <div className="glass-panel flex flex-col min-h-[540px]">
+            <div className="flex border-b border-border-color bg-white/1 rounded-t-xl">
               <button
-                className={`tab-btn ${activeTab === "complexity" ? "active" : ""}`}
+                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-xs font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main ${
+                  activeTab === "complexity" ? "text-primary border-primary font-semibold bg-primary/3" : ""
+                }`}
                 onClick={() => setActiveTab("complexity")}
               >
                 <BarChart2 size={14} />
                 <span>Complexity</span>
               </button>
               <button
-                className={`tab-btn ${activeTab === "optimizer" ? "active" : ""}`}
+                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-xs font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main ${
+                  activeTab === "optimizer" ? "text-primary border-primary font-semibold bg-primary/3" : ""
+                }`}
                 onClick={() => setActiveTab("optimizer")}
               >
                 <Zap size={14} />
                 <span>AI Optimizer</span>
               </button>
               <button
-                className={`tab-btn ${activeTab === "simulator" ? "active" : ""}`}
+                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-xs font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main ${
+                  activeTab === "simulator" ? "text-primary border-primary font-semibold bg-primary/3" : ""
+                }`}
                 onClick={() => setActiveTab("simulator")}
               >
                 <Play size={14} />
@@ -571,32 +554,32 @@ export default function App() {
                 <div className="loader-text">AI is compiling & simulating your algorithm...</div>
               </div>
             ) : (
-              <div className="tab-content" style={{ display: "flex", flex: 1, flexDirection: "column" }}>
+              <div className="p-4 flex flex-col flex-1">
                 {activeTab === "complexity" && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "10px" }}>
-                    <div className="badges-container">
-                      <div className="badge-card time">
-                        <div className="badge-icon">
+                  <div className="flex flex-col gap-4 mt-2.5">
+                    <div className="flex gap-3 mb-1">
+                      <div className="flex-1 bg-white/3 border border-primary/20 rounded-lg p-2.5 flex items-center gap-2.5">
+                        <div className="bg-primary/10 text-primary rounded-lg p-1.5 flex">
                           <BarChart2 size={18} />
                         </div>
-                        <div className="badge-info">
-                          <span className="badge-label">Time Complexity</span>
-                          <span className="badge-value">{analysisResult.timeComplexity}</span>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-text-muted uppercase">Time Complexity</span>
+                          <span className="text-base font-bold text-primary font-mono">{analysisResult.timeComplexity}</span>
                         </div>
                       </div>
 
-                      <div className="badge-card space">
-                        <div className="badge-icon">
+                      <div className="flex-1 bg-white/3 border border-secondary/20 rounded-lg p-2.5 flex items-center gap-2.5">
+                        <div className="bg-secondary/10 text-secondary rounded-lg p-1.5 flex">
                           <BarChart2 size={18} />
                         </div>
-                        <div className="badge-info">
-                          <span className="badge-label">Space Complexity</span>
-                          <span className="badge-value">{analysisResult.spaceComplexity}</span>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-text-muted uppercase">Space Complexity</span>
+                          <span className="text-base font-bold text-secondary font-mono">{analysisResult.spaceComplexity}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="explanation-text" style={{ whiteSpace: "pre-wrap" }}>
+                    <div className="text-text-muted text-xs leading-relaxed" style={{ whiteSpace: "pre-wrap" }}>
                       {analysisResult.explanation || "No analysis generated yet. Click 'Analyze Complexity'."}
                     </div>
 
@@ -638,63 +621,60 @@ export default function App() {
         </div>
 
         {/* Collapsible Admin User Management Drawer */}
-        <div className="admin-drawer">
-          <div className="admin-header" onClick={() => setIsAdminOpen(!isAdminOpen)}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.82rem", fontWeight: 600 }}>
-              <Database size={15} color="var(--primary)" />
+        <div className="mt-4 border-t border-border-color pt-4">
+          <div className="flex justify-between items-center cursor-pointer p-2 px-3 bg-white/2 border border-border-color rounded-lg" onClick={() => setIsAdminOpen(!isAdminOpen)}>
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-text-main">
+              <Database size={15} className="text-primary" />
               <span>Simulated Database: User Administration Table</span>
             </div>
-            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+            <div className="text-xs text-text-muted">
               {isAdminOpen ? "Collapse [-]" : "Expand User Management Table [+]"}
             </div>
           </div>
 
           {isAdminOpen && (
-            <div className="admin-table-container glass-panel">
-              <table className="table-admin">
+            <div className="overflow-x-auto mt-3 border border-border-color rounded-lg glass-panel">
+              <table className="w-full border-collapse text-xs text-left">
                 <thead>
-                  <tr>
-                    <th>Email / Mobile</th>
-                    <th>Account Tier</th>
-                    <th>Tokens Balance</th>
-                    <th>Signup Time</th>
-                    <th>Admin Controls</th>
+                  <tr className="bg-white/3 border-b border-border-color">
+                    <th className="text-text-muted font-semibold p-2 px-3">Email / Mobile</th>
+                    <th className="text-text-muted font-semibold p-2 px-3">Account Tier</th>
+                    <th className="text-text-muted font-semibold p-2 px-3">Tokens Balance</th>
+                    <th className="text-text-muted font-semibold p-2 px-3">Signup Time</th>
+                    <th className="text-text-muted font-semibold p-2 px-3">Admin Controls</th>
                   </tr>
                 </thead>
                 <tbody>
                   {usersDb.map((user) => (
-                    <tr key={user.contact} style={user.contact === userContact ? { background: "rgba(99, 102, 241, 0.08)" } : {}}>
-                      <td style={{ fontWeight: 600 }}>
+                    <tr key={user.contact} className="hover:bg-white/2" style={user.contact === userContact ? { background: "rgba(99, 102, 241, 0.08)" } : {}}>
+                      <td className="p-2 px-3 border-b border-border-color font-semibold">
                         {user.contact} {user.contact === userContact ? " (You)" : ""}
                       </td>
-                      <td>
+                      <td className="p-2 px-3 border-b border-border-color">
                         <span
-                          className="logo-badge"
-                          style={{
-                            background: user.tier === "premium" ? "linear-gradient(135deg, var(--accent-purple), var(--primary))" : "var(--text-dark)",
-                            padding: "2px 6px"
-                          }}
+                          className="bg-gradient-to-r from-primary to-secondary text-[9px] font-semibold px-2 py-0.5 rounded text-white uppercase tracking-wider"
+                          style={user.tier === "premium" ? {} : { background: "var(--color-text-dark)" }}
                         >
                           {user.tier.toUpperCase()}
                         </span>
                       </td>
-                      <td style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>{user.tokens} Tokens</td>
-                      <td style={{ color: "var(--text-muted)" }}>{user.signup}</td>
-                      <td>
+                      <td className="p-2 px-3 border-b border-border-color font-mono font-semibold">{user.tokens} Tokens</td>
+                      <td className="p-2 px-3 border-b border-border-color text-text-muted">{user.signup}</td>
+                      <td className="p-2 px-3 border-b border-border-color">
                         <button
-                          className="admin-action-btn"
+                          className="bg-primary text-white p-1 px-2 rounded cursor-pointer text-[10px] font-medium mr-1 border-none"
                           onClick={() => handleAdminToggleTier(user.contact)}
                         >
                           Toggle Tier
                         </button>
                         <button
-                          className="admin-action-btn"
+                          className="bg-primary text-white p-1 px-2 rounded cursor-pointer text-[10px] font-medium mr-1 border-none"
                           onClick={() => handleAdminAddTokens(user.contact)}
                         >
                           +10 Tokens
                         </button>
                         <button
-                          className="admin-action-btn delete"
+                          className="bg-accent-red text-white p-1 px-2 rounded cursor-pointer text-[10px] font-medium border-none"
                           onClick={() => handleAdminDelete(user.contact)}
                         >
                           Delete
@@ -704,7 +684,7 @@ export default function App() {
                   ))}
                   {usersDb.length === 0 && (
                     <tr>
-                      <td colSpan="5" style={{ textAlign: "center", color: "var(--text-dark)" }}>
+                      <td colSpan="5" className="p-4 border-b border-border-color text-center text-text-dark">
                         No records in user table. Create an account to register!
                       </td>
                     </tr>
@@ -718,68 +698,67 @@ export default function App() {
 
       {/* OTP Authentication Modal */}
       {showLogin && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3 className="card-title">
-                <User size={18} color="var(--primary)" />
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-bg-main border border-border-color rounded-xl w-full max-w-[440px] shadow-glass-shadow overflow-hidden text-left">
+            <div className="p-3 px-4 border-b border-border-color flex justify-between items-center">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-text-main">
+                <User size={18} className="text-primary" />
                 <span>Verification Login Portal</span>
               </h3>
-              <button className="close-btn" onClick={() => setShowLogin(false)}>
+              <button className="bg-transparent border-none text-text-muted cursor-pointer hover:text-text-main" onClick={() => setShowLogin(false)}>
                 ✕
               </button>
             </div>
             
-            <div className="modal-body">
+            <div className="p-4">
               {loginStep === "input" ? (
                 <>
-                  <p className="explanation-text">
+                  <p className="text-text-muted text-xs leading-relaxed mb-3">
                     Enter your email address or mobile phone number. A 4-digit verification code will be simulated.
                   </p>
-                  <div className="settings-input-group">
-                    <label className="section-label">Email or Phone Number</label>
+                  <div className="flex flex-col gap-1.5 mb-3">
+                    <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Email or Phone Number</label>
                     <input
                       type="text"
-                      className="settings-input"
+                      className="bg-black/20 border border-border-color rounded-md p-2 text-text-main outline-none text-xs focus:border-primary"
                       placeholder="e.g. dev@bigo.ai or +919999988888"
                       value={contactInput}
                       onChange={(e) => setContactInput(e.target.value)}
                     />
                   </div>
-                  <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "16px" }}>
-                    <button className="btn-secondary" onClick={() => setShowLogin(false)}>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <button className="bg-white/5 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15" onClick={() => setShowLogin(false)}>
                       Cancel
                     </button>
-                    <button className="btn-primary" onClick={handleSendOtp} disabled={isSendingOtp}>
+                    <button className="bg-gradient-to-r from-primary to-secondary text-white px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-40" onClick={handleSendOtp} disabled={isSendingOtp}>
                       {isSendingOtp ? "Generating Code..." : "Send OTP"}
                     </button>
                   </div>
                 </>
               ) : (
                 <>
-                  <p className="explanation-text">
+                  <p className="text-text-muted text-xs leading-relaxed mb-3">
                     OTP sent to <strong>{contactInput}</strong>! Enter the 4-digit verification code to log in.
                   </p>
-                  <div className="settings-input-group">
-                    <label className="section-label" style={{ color: "var(--accent-yellow)" }}>4-Digit Code</label>
+                  <div className="flex flex-col gap-1.5 mb-3">
+                    <label className="text-[10px] font-semibold text-accent-yellow uppercase tracking-wider">4-Digit Code</label>
                     <input
                       type="text"
                       maxLength="4"
-                      className="settings-input"
-                      style={{ textAlign: "center", fontSize: "1.2rem", letterSpacing: "8px", fontFamily: "var(--font-mono)" }}
+                      className="bg-black/20 border border-border-color rounded-md p-2 text-text-main outline-none text-base text-center tracking-[8px] font-mono focus:border-primary"
                       placeholder="1234"
                       value={otpInput}
                       onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ""))}
                     />
                   </div>
-                  <p className="settings-help" style={{ color: "var(--accent-green)" }}>
+                  <p className="text-[11px] text-accent-green leading-relaxed">
                     💡 Pro-Tip: Enter <strong>1234</strong> (or any code) to simulate successful OTP verification!
                   </p>
-                  <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "16px" }}>
-                    <button className="btn-secondary" onClick={() => setLoginStep("input")}>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <button className="bg-white/5 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15" onClick={() => setLoginStep("input")}>
                       Back
                     </button>
-                    <button className="btn-primary" onClick={handleVerifyOtp}>
+                    <button className="bg-gradient-to-r from-primary to-secondary text-white px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer" onClick={handleVerifyOtp}>
                       Verify & Log In
                     </button>
                   </div>
@@ -792,53 +771,57 @@ export default function App() {
 
       {/* Checkout Modal */}
       {showCheckout && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3 className="card-title">
-                <Coins size={18} color="var(--accent-yellow)" />
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-bg-main border border-border-color rounded-xl w-full max-w-[440px] shadow-glass-shadow overflow-hidden text-left">
+            <div className="p-3 px-4 border-b border-border-color flex justify-between items-center">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-text-main">
+                <Coins size={18} className="text-accent-yellow" />
                 <span>Unlock Advanced Features</span>
               </h3>
-              <button className="close-btn" onClick={() => setShowCheckout(false)}>
+              <button className="bg-transparent border-none text-text-muted cursor-pointer hover:text-text-main" onClick={() => setShowCheckout(false)}>
                 ✕
               </button>
             </div>
             
-            <div className="modal-body">
-              <p className="explanation-text" style={{ marginBottom: "20px" }}>
+            <div className="p-4">
+              <p className="text-text-muted text-xs leading-relaxed mb-4">
                 Select a payment package to continue. Enjoy unrestricted access to step-by-step logic simulator.
               </p>
 
-              <div className="checkout-cards">
+              <div className="flex flex-col gap-3">
                 <div
-                  className={`checkout-tier-option ${checkoutOption === "subscription" ? "selected" : ""}`}
+                  className={`border border-border-color rounded-lg p-3 flex justify-between items-center cursor-pointer transition-all duration-200 ${
+                    checkoutOption === "subscription" ? "border-primary bg-primary/5 shadow-sm shadow-primary/10" : "bg-white/1"
+                  }`}
                   onClick={() => setCheckoutOption("subscription")}
                 >
-                  <div className="option-details">
-                    <span className="option-title">1 Month Premium Access</span>
-                    <span className="option-desc">Includes 70 custom simulation tokens + infinite template runs</span>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[13px] font-semibold text-text-main">1 Month Premium Access</span>
+                    <span className="text-[11px] text-text-muted">Includes 70 custom simulation tokens + infinite template runs</span>
                   </div>
-                  <span className="option-price">₹40</span>
+                  <span className="text-sm font-bold text-accent-yellow">₹40</span>
                 </div>
 
                 <div
-                  className={`checkout-tier-option ${checkoutOption === "tokens" ? "selected" : ""}`}
+                  className={`border border-border-color rounded-lg p-3 flex justify-between items-center cursor-pointer transition-all duration-200 ${
+                    checkoutOption === "tokens" ? "border-primary bg-primary/5 shadow-sm shadow-primary/10" : "bg-white/1"
+                  }`}
                   onClick={() => setCheckoutOption("tokens")}
                 >
-                  <div className="option-details">
-                    <span className="option-title">Buy 10 Tokens Pack</span>
-                    <span className="option-desc">Custom inputs simulation (₹1 per simulation)</span>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[13px] font-semibold text-text-main">Buy 10 Tokens Pack</span>
+                    <span className="text-[11px] text-text-muted">Custom inputs simulation (₹1 per simulation)</span>
                   </div>
-                  <span className="option-price">₹10</span>
+                  <span className="text-sm font-bold text-accent-yellow">₹10</span>
                 </div>
               </div>
             </div>
 
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowCheckout(false)}>
+            <div className="p-3 px-4 border-t border-border-color flex justify-end gap-2 bg-black/5">
+              <button className="bg-white/5 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15" onClick={() => setShowCheckout(false)}>
                 Cancel
               </button>
-              <button className="btn-primary" onClick={handlePurchase}>
+              <button className="bg-gradient-to-r from-primary to-secondary text-white px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer" onClick={handlePurchase}>
                 Proceed to Pay
               </button>
             </div>

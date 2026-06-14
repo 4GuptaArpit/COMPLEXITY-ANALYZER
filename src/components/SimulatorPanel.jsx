@@ -52,7 +52,6 @@ export default function SimulatorPanel({
     if (isPlaying) {
       playIntervalRef.current = setInterval(() => {
         setActiveStepIndex((prev) => {
-          // Check if next step is a quiz step before proceeding
           const nextIndex = prev + 1;
           const hasQuiz = quizzes?.some((q) => q.stepIndex === nextIndex);
           
@@ -67,7 +66,7 @@ export default function SimulatorPanel({
           }
           return nextIndex;
         });
-      }, 1500); // 1.5 second steps
+      }, 1500);
     } else {
       if (playIntervalRef.current) clearInterval(playIntervalRef.current);
     }
@@ -77,17 +76,14 @@ export default function SimulatorPanel({
     };
   }, [isPlaying, totalSteps, quizzes]);
 
-  // Stop playing if we reach the end
   useEffect(() => {
     if (activeStepIndex >= totalSteps - 1) {
       setIsPlaying(false);
     }
   }, [activeStepIndex, totalSteps]);
 
-  // Check if current step has an active quiz
   const activeQuiz = quizzes?.find((q) => q.stepIndex === activeStepIndex);
 
-  // Reset quiz states when moving to a different step
   useEffect(() => {
     setSelectedAnswer(null);
     setQuizAnswered(false);
@@ -127,24 +123,24 @@ export default function SimulatorPanel({
   // Paid Premium Lock
   if (userTier !== "premium") {
     return (
-      <div className="lock-overlay" style={{ marginTop: "10px" }}>
-        <div className="lock-icon">
+      <div className="flex flex-col items-center justify-center p-8 text-center flex-1 bg-black/10 rounded-lg border border-border-color mt-2.5">
+        <div className="bg-primary/10 text-primary p-3 rounded-full mb-3 flex">
           <Lock size={28} />
         </div>
-        <h3 className="lock-title">Unlock Step-by-Step Simulation</h3>
-        <p className="lock-desc">
+        <h3 className="text-base font-semibold mb-1.5">Unlock Step-by-Step Simulation</h3>
+        <p className="text-xs text-text-muted max-w-[300px] mb-4 leading-relaxed">
           Watch code execute line-by-line in real-time, view local variable states, analyze the call stack, and practice visual dry-runs with active quizzes.
         </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%", maxWidth: "260px" }}>
-          <button className="btn-primary" onClick={onOpenCheckout} style={{ justifyContent: "center" }}>
+        <div className="flex flex-col gap-2.5 w-full max-w-[260px]">
+          <button className="btn-primary justify-center" onClick={onOpenCheckout}>
             <Coins size={16} />
             <span>Unlock Premium (₹40/mo)</span>
           </button>
-          <button className="btn-secondary" onClick={onOpenCheckout} style={{ justifyContent: "center" }}>
+          <button className="btn-secondary justify-center" onClick={onOpenCheckout}>
             <span>Buy 10 Tokens (₹10)</span>
           </button>
         </div>
-        <p className="option-desc" style={{ marginTop: "12px", fontSize: "0.7rem", color: "var(--text-dark)" }}>
+        <p className="text-[10px] text-text-dark mt-3">
           * Free templates simulation. Custom code simulations cost 1 token.
         </p>
       </div>
@@ -153,10 +149,10 @@ export default function SimulatorPanel({
 
   if (!simulationSteps || totalSteps === 0) {
     return (
-      <div className="lock-overlay" style={{ background: "rgba(0,0,0,0.1)", border: "1px dashed rgba(255,255,255,0.08)", marginTop: "10px" }}>
-        <HelpCircle size={24} color="var(--text-muted)" style={{ marginBottom: "8px" }} />
-        <h4 style={{ fontSize: "0.9rem", color: "var(--text-muted)" }}>Ready to Simulate</h4>
-        <p className="lock-desc" style={{ fontSize: "0.75rem", margin: "4px 0 0 0" }}>
+      <div className="flex flex-col items-center justify-center p-8 text-center flex-1 bg-black/10 rounded-lg border border-dashed border-border-color mt-2.5">
+        <HelpCircle size={24} className="text-text-muted mb-2" />
+        <h4 className="text-sm font-semibold text-text-muted">Ready to Simulate</h4>
+        <p className="text-xs text-text-dark max-w-[300px] mt-1 leading-relaxed">
           Click "Simulate Step-by-Step" on the sandbox editor to load the execution steps here.
         </p>
       </div>
@@ -164,34 +160,33 @@ export default function SimulatorPanel({
   }
 
   return (
-    <div className="tab-content" style={{ padding: 0, marginTop: "10px" }}>
+    <div className="flex flex-col mt-2.5">
       {/* Simulation Tracker / Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-        <span className="option-desc">Simulation Console</span>
+      <div className="flex justify-between items-center mb-3">
+        <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Simulation Console</span>
         {isCustomCode && (
-          <span className="token-pill" style={{ padding: "3px 8px", fontSize: "0.7rem", margin: 0 }}>
+          <span className="flex items-center gap-1 bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow text-[10px] font-semibold px-2 py-0.5 rounded-full">
             Active Simulation Token Used
           </span>
         )}
       </div>
 
       {/* Simulator Controls */}
-      <div className="sim-controls">
-        <button className="sim-btn" onClick={handleReset} title="Rewind">
+      <div className="flex items-center justify-center gap-2 mb-3 bg-white/1 border border-border-color p-1.5 rounded-lg">
+        <button className="bg-white/4 border border-border-color text-text-main p-1 px-2.5 rounded-md cursor-pointer text-xs transition-all duration-200 hover:bg-gray-500/15" onClick={handleReset} title="Rewind">
           <RotateCcw size={14} />
         </button>
 
-        <button className="sim-btn" onClick={handlePrev} disabled={activeStepIndex === 0} title="Previous Step">
+        <button className="bg-white/4 border border-border-color text-text-main p-1 px-2.5 rounded-md cursor-pointer text-xs transition-all duration-200 hover:bg-gray-500/15 disabled:opacity-40 disabled:cursor-not-allowed" onClick={handlePrev} disabled={activeStepIndex === 0} title="Previous Step">
           <ChevronLeft size={14} />
         </button>
 
-        <span className="sim-progress-indicator">
+        <span className="text-xs font-semibold text-text-muted min-w-[80px] text-center">
           Step {activeStepIndex + 1} / {totalSteps}
         </span>
 
-        {/* Play / Pause - disabled if there's an active quiz the user hasn't solved */}
         <button
-          className="sim-btn"
+          className="bg-white/4 border border-border-color text-text-main p-1 px-2.5 rounded-md cursor-pointer text-xs transition-all duration-200 hover:bg-gray-500/15 disabled:opacity-40 disabled:cursor-not-allowed"
           onClick={() => setIsPlaying(!isPlaying)}
           disabled={activeStepIndex === totalSteps - 1 || (activeQuiz && !quizAnswered)}
           title={isPlaying ? "Pause" : "Play Auto"}
@@ -200,7 +195,7 @@ export default function SimulatorPanel({
         </button>
 
         <button
-          className="sim-btn"
+          className="bg-white/4 border border-border-color text-text-main p-1 px-2.5 rounded-md cursor-pointer text-xs transition-all duration-200 hover:bg-gray-500/15 disabled:opacity-40 disabled:cursor-not-allowed"
           onClick={handleNext}
           disabled={activeStepIndex === totalSteps - 1 || (activeQuiz && !quizAnswered)}
           title="Next Step"
@@ -211,34 +206,34 @@ export default function SimulatorPanel({
 
       {/* Step Explanation */}
       {currentStep && (
-        <div className="sim-step-explanation">
+        <div className="bg-primary/5 border border-primary/15 rounded-lg p-3 text-xs text-text-main leading-relaxed mb-3 border-l-2 border-l-primary">
           {currentStep.explanation}
         </div>
       )}
 
-      {/* Variable Watcher */}
-      <div className="variables-section">
-        <h4 className="section-label">Variable Monitor</h4>
-        <div style={{ border: "1px solid var(--border-color)", borderRadius: "6px", overflow: "hidden" }}>
-          <table className="table-glass">
+      {/* Variables Monitor */}
+      <div className="flex flex-col gap-2 mb-3">
+        <h4 className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Variable Monitor</h4>
+        <div className="border border-border-color rounded-md overflow-hidden bg-black/5">
+          <table className="w-full border-collapse text-xs text-left">
             <thead>
               <tr>
-                <th>Variable</th>
-                <th>Value</th>
+                <th className="p-2 px-3 border-b border-border-color font-semibold text-text-muted bg-white/2">Variable</th>
+                <th className="p-2 px-3 border-b border-border-color font-semibold text-text-muted bg-white/2">Value</th>
               </tr>
             </thead>
             <tbody>
               {currentStep && Object.entries(currentStep.vars || {}).map(([name, value]) => (
-                <tr key={name}>
-                  <td style={{ color: "var(--secondary)" }}>{name}</td>
-                  <td className={changedVars[name] ? "var-changed" : ""}>
+                <tr key={name} className="hover:bg-white/2">
+                  <td className="p-2 px-3 border-b border-border-color font-mono text-secondary">{name}</td>
+                  <td className={`p-2 px-3 border-b border-border-color font-mono ${changedVars[name] ? "var-changed" : ""}`}>
                     {typeof value === "object" ? JSON.stringify(value) : String(value)}
                   </td>
                 </tr>
               ))}
               {(!currentStep || Object.keys(currentStep.vars || {}).length === 0) && (
                 <tr>
-                  <td colSpan="2" style={{ color: "var(--text-dark)", textAlign: "center" }}>
+                  <td colSpan="2" className="p-4 border-b border-border-color text-center text-text-dark">
                     No active variables in scope
                   </td>
                 </tr>
@@ -248,30 +243,30 @@ export default function SimulatorPanel({
         </div>
       </div>
 
-      {/* Interactive Dry Run Quiz (Paid user exclusive interactive element) */}
+      {/* Interactive Dry Run Quiz */}
       {activeQuiz && (
-        <div className="quiz-card">
-          <div className="quiz-question">
-            <HelpCircle size={16} color="var(--accent-purple)" style={{ marginTop: "2px", flexShrink: 0 }} />
+        <div className="bg-accent-purple/5 border border-accent-purple/20 rounded-lg p-4 mt-2.5">
+          <div className="text-xs font-semibold mb-3 text-text-main flex items-start gap-2">
+            <HelpCircle size={16} className="text-accent-purple shrink-0 mt-0.5" />
             <div>
               <strong>Dry-Run Quiz:</strong> {activeQuiz.question}
             </div>
           </div>
-          <div className="quiz-options">
+          <div className="flex flex-col gap-2">
             {activeQuiz.options.map((opt) => {
               const isSelected = selectedAnswer === opt;
               const isAnswerCorrect = opt === activeQuiz.answer;
               
               let btnClass = "";
               if (quizAnswered) {
-                if (isAnswerCorrect) btnClass = "correct";
-                else if (isSelected) btnClass = "wrong";
+                if (isAnswerCorrect) btnClass = "bg-accent-green/15 border-accent-green text-accent-green font-semibold";
+                else if (isSelected) btnClass = "bg-accent-red/15 border-accent-red text-accent-red";
               }
 
               return (
                 <button
                   key={opt}
-                  className={`quiz-opt-btn ${btnClass}`}
+                  className={`bg-white/3 border border-border-color rounded-md p-2 text-xs text-text-muted text-left cursor-pointer transition-all duration-200 hover:bg-white/8 hover:text-text-main disabled:cursor-not-allowed ${btnClass}`}
                   onClick={() => handleQuizAnswer(opt)}
                   disabled={quizAnswered}
                 >
@@ -282,18 +277,18 @@ export default function SimulatorPanel({
           </div>
 
           {quizAnswered && (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "12px", fontSize: "0.8rem" }}>
+            <div className="flex items-center gap-2 mt-3 text-xs">
               {quizStatus === "correct" ? (
                 <>
-                  <Check size={16} color="var(--accent-green)" />
-                  <span style={{ color: "var(--accent-green)", fontWeight: 600 }}>Correct!</span>
-                  <span style={{ color: "var(--text-muted)" }}>You can now resume the simulation.</span>
+                  <Check size={16} className="text-accent-green" />
+                  <span className="text-accent-green font-bold">Correct!</span>
+                  <span className="text-text-muted">You can now resume the simulation.</span>
                 </>
               ) : (
                 <>
-                  <X size={16} color="var(--accent-red)" />
-                  <span style={{ color: "var(--accent-red)", fontWeight: 600 }}>Incorrect.</span>
-                  <span style={{ color: "var(--text-muted)" }}>Correct answer: <strong>{activeQuiz.answer}</strong></span>
+                  <X size={16} className="text-accent-red" />
+                  <span className="text-accent-red font-bold">Incorrect.</span>
+                  <span className="text-text-muted">Correct answer: <strong>{activeQuiz.answer}</strong></span>
                 </>
               )}
             </div>

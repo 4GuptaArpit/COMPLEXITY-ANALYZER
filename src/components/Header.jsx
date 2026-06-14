@@ -27,34 +27,49 @@ export default function Header({
   };
 
   return (
-    <header className="app-header glass-panel">
-      <div className="logo-section">
-        <Sparkles className="logo-icon" size={22} color="var(--primary)" />
-        <span className="logo-text">BigO.ai</span>
-        <span className="logo-badge">Beta</span>
+    <header className="glass-panel flex justify-between items-center p-3 px-4 rounded-xl">
+      <div className="flex items-center gap-2">
+        <Sparkles size={22} className="text-primary" />
+        <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-text-main via-primary to-secondary bg-clip-text text-transparent">
+          BigO.ai
+        </span>
+        <span className="bg-gradient-to-r from-primary to-secondary text-[10px] font-bold px-1.5 py-0.5 rounded text-white uppercase tracking-wider">
+          Beta
+        </span>
       </div>
 
-      <div className="header-controls">
-        {/* Switch themes (Sun/Moon Toggle) */}
-        <button className="btn-secondary" onClick={toggleTheme} title="Toggle Theme" style={{ padding: "8px" }}>
-          {theme === "dark" ? <Sun size={15} color="#eab308" /> : <Moon size={15} color="#4f46e5" />}
+      <div className="flex items-center gap-3">
+        {/* Toggle Theme */}
+        <button
+          className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main p-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15 transition-all duration-200"
+          onClick={toggleTheme}
+          title="Toggle Theme"
+        >
+          {theme === "dark" ? <Sun size={15} className="text-accent-yellow" /> : <Moon size={15} className="text-primary" />}
         </button>
 
         {/* User Session Profile Section */}
         {userContact ? (
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div className="btn-secondary" style={{ cursor: "default", gap: "6px" }}>
-              <User size={13} color="var(--primary)" />
-              <span style={{ fontSize: "0.75rem", maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <div className="flex items-center gap-2">
+            <div className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-default">
+              <User size={13} className="text-primary" />
+              <span className="max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap">
                 {userContact}
               </span>
             </div>
-            <button className="btn-secondary" onClick={onLogout} title="Log Out" style={{ padding: "8px" }}>
-              <LogOut size={14} color="var(--accent-red)" />
+            <button
+              className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main p-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15 transition-all duration-200"
+              onClick={onLogout}
+              title="Log Out"
+            >
+              <LogOut size={14} className="text-accent-red" />
             </button>
           </div>
         ) : (
-          <button className="btn-secondary" onClick={onOpenLogin}>
+          <button
+            className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium cursor-pointer flex items-center gap-1.5 hover:bg-gray-500/15 transition-all duration-200"
+            onClick={onOpenLogin}
+          >
             <LogIn size={14} />
             <span>Login / Sign Up</span>
           </button>
@@ -62,7 +77,7 @@ export default function Header({
 
         {/* Token Balance for Premium User */}
         {userTier === "premium" && (
-          <div className="token-pill">
+          <div className="flex items-center gap-1.5 bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow text-xs font-semibold px-2.5 py-1.5 rounded-full">
             <Coins size={14} />
             <span>{tokens} Tokens</span>
           </div>
@@ -70,35 +85,47 @@ export default function Header({
 
         {/* Upgrade / Token Actions */}
         {userTier !== "premium" ? (
-          <button className="btn-primary" onClick={onOpenCheckout}>
+          <button
+            className="bg-gradient-to-r from-primary to-secondary border-none text-white px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all duration-200 hover:scale-[1.01] hover:brightness-110 shadow-md shadow-primary/35"
+            onClick={onOpenCheckout}
+          >
             <CreditCard size={14} />
             <span>Upgrade (₹40)</span>
           </button>
         ) : (
-          <button className="btn-secondary" onClick={onOpenCheckout}>
+          <button
+            className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium cursor-pointer flex items-center gap-1.5 hover:bg-gray-500/15 transition-all duration-200"
+            onClick={onOpenCheckout}
+          >
             <Coins size={14} />
             <span>Buy Tokens</span>
           </button>
         )}
 
-        {/* Developer Demo Toggles (Helper for demo reviewer to switch tiers instantly) */}
-        <div className="tier-badge-pill" style={{ opacity: 0.6 }}>
+        {/* Developer Demo Toggles */}
+        <div className="bg-white/4 dark:bg-black/3 border border-border-color rounded-full flex p-0.5 opacity-60">
           <button
-            className={`tier-btn ${userTier === "anonymous" ? "active" : ""}`}
+            className={`cursor-pointer text-[10px] font-semibold px-2 py-1 rounded-full transition-all duration-200 ${
+              userTier === "anonymous" ? "bg-primary text-white shadow-md shadow-primary/30" : "text-text-muted"
+            }`}
             onClick={() => setUserTier("anonymous")}
             title="Demo: Set to Anonymous"
           >
             Anon
           </button>
           <button
-            className={`tier-btn ${userTier === "free" ? "active" : ""}`}
+            className={`cursor-pointer text-[10px] font-semibold px-2 py-1 rounded-full transition-all duration-200 ${
+              userTier === "free" ? "bg-primary text-white shadow-md shadow-primary/30" : "text-text-muted"
+            }`}
             onClick={() => setUserTier("free")}
             title="Demo: Set to Logged In Free"
           >
             Free
           </button>
           <button
-            className={`tier-btn ${userTier === "premium" ? "active" : ""}`}
+            className={`cursor-pointer text-[10px] font-semibold px-2 py-1 rounded-full transition-all duration-200 ${
+              userTier === "premium" ? "bg-gradient-to-r from-accent-purple to-primary text-white shadow-md shadow-accent-purple/30" : "text-text-muted"
+            }`}
             onClick={() => setUserTier("premium")}
             title="Demo: Set to Paid Premium"
           >
@@ -107,50 +134,68 @@ export default function Header({
         </div>
 
         {/* Settings gear */}
-        <button className="btn-secondary" onClick={() => setShowSettings(true)} title="Gemini API settings">
+        <button
+          className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main p-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15 transition-all duration-200"
+          onClick={() => setShowSettings(true)}
+          title="Gemini API settings"
+        >
           <Settings size={15} />
         </button>
       </div>
 
       {/* Settings Modal */}
       {showSettings && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3 className="card-title">
-                <Settings size={18} className="var-changed" />
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-bg-main border border-border-color rounded-xl w-full max-w-[440px] shadow-glass-shadow overflow-hidden">
+            <div className="p-3.5 px-4 border-b border-border-color flex justify-between items-center">
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
+                <Settings size={18} className="text-accent-yellow animate-spin-slow" />
                 <span>API Settings</span>
               </h3>
-              <button className="close-btn" onClick={() => setShowSettings(false)}>
+              <button
+                className="bg-transparent border-none text-text-muted cursor-pointer hover:text-text-main transition-colors"
+                onClick={() => setShowSettings(false)}
+              >
                 ✕
               </button>
             </div>
-            <div className="modal-body">
-              <p className="explanation-text">
+            <div className="p-4">
+              <p className="text-text-muted text-xs leading-relaxed mb-3">
                 Enter your Gemini API key below to enable live calculation and execution simulation for any custom code.
               </p>
-              <div className="settings-input-group">
-                <label className="section-label">Gemini API Key</label>
+              <div className="flex flex-col gap-1.5 mb-3">
+                <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Gemini API Key</label>
                 <input
                   type="password"
-                  className="settings-input"
+                  className="bg-black/20 border border-border-color rounded-md p-2 text-text-main outline-none text-xs focus:border-primary"
                   placeholder="AIzaSy..."
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
                 />
               </div>
-              <p className="settings-help">
+              <p className="text-[10px] text-text-dark leading-relaxed">
                 Don't have a key? Get a free Gemini API key from{" "}
-                <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer">
+                <a
+                  href="https://aistudio.google.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
                   Google AI Studio
                 </a>.
               </p>
             </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowSettings(false)}>
+            <div className="p-3 px-4 border-t border-border-color flex justify-end gap-2 bg-black/5">
+              <button
+                className="bg-white/5 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15"
+                onClick={() => setShowSettings(false)}
+              >
                 Cancel
               </button>
-              <button className="btn-primary" onClick={handleSaveSettings}>
+              <button
+                className="bg-gradient-to-r from-primary to-secondary text-white px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer"
+                onClick={handleSaveSettings}
+              >
                 Save Key
               </button>
             </div>

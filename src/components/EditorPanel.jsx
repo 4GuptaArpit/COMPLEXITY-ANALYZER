@@ -70,30 +70,30 @@ export default function EditorPanel({
   };
 
   return (
-    <div className="glass-panel editor-card">
-      <div className="card-header">
-        <h3 className="card-title">
-          <Sparkles size={18} color="var(--primary)" />
+    <div className="glass-panel flex flex-col min-h-[540px]">
+      <div className="border-b border-border-color p-3 px-4 flex justify-between items-center">
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <Sparkles size={18} className="text-primary" />
           <span>Algorithm Sandbox</span>
         </h3>
         
-        <div className="selector-group">
+        <div className="flex gap-2 items-center">
           {/* Display detected language badge */}
           {selectedLanguage === "auto" && detectedLanguage && (
-            <span className="detection-badge">
+            <span className="bg-secondary/15 border border-secondary/25 text-secondary text-[10px] font-semibold px-1.5 py-0.5 rounded animate-pulse">
               Detected: {detectedLanguage === "cpp" ? "C++" : detectedLanguage.toUpperCase()}
             </span>
           )}
 
           {/* Template Selector */}
           <select
-            className="select-dropdown"
+            className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main p-1.5 px-2.5 rounded-lg text-[13px] outline-none cursor-pointer focus:border-primary"
             value={selectedTemplate}
             onChange={handleTemplateChange}
           >
-            <option value="custom">📝 Custom Code</option>
+            <option value="custom" className="bg-[#171c26] text-[#f3f4f6]">📝 Custom Code</option>
             {mockAlgorithms.map((algo) => (
-              <option key={algo.id} value={algo.id}>
+              <option key={algo.id} value={algo.id} className="bg-[#171c26] text-[#f3f4f6]">
                 ⚡ {algo.name} ({algo.timeComplexity})
               </option>
             ))}
@@ -101,26 +101,26 @@ export default function EditorPanel({
 
           {/* Language Selector */}
           <select
-            className="select-dropdown"
+            className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main p-1.5 px-2.5 rounded-lg text-[13px] outline-none cursor-pointer focus:border-primary"
             value={selectedLanguage}
             onChange={handleLanguageChange}
           >
-            <option value="auto">✨ Auto-Detect</option>
-            <option value="javascript">JavaScript</option>
-            <option value="python">Python</option>
-            <option value="cpp">C++</option>
-            <option value="c">C</option>
-            <option value="java">Java</option>
-            <option value="rust">
+            <option value="auto" className="bg-[#171c26] text-[#f3f4f6]">✨ Auto-Detect</option>
+            <option value="javascript" className="bg-[#171c26] text-[#f3f4f6]">JavaScript</option>
+            <option value="python" className="bg-[#171c26] text-[#f3f4f6]">Python</option>
+            <option value="cpp" className="bg-[#171c26] text-[#f3f4f6]">C++</option>
+            <option value="c" className="bg-[#171c26] text-[#f3f4f6]">C</option>
+            <option value="java" className="bg-[#171c26] text-[#f3f4f6]">Java</option>
+            <option value="rust" className="bg-[#171c26] text-[#f3f4f6]">
               Rust {userTier !== "premium" ? "🔒" : ""}
             </option>
           </select>
         </div>
       </div>
 
-      <div className="editor-body">
+      <div className="relative flex-1 flex bg-black/90 rounded-b-xl font-mono overflow-hidden">
         {/* Line Numbers */}
-        <div className="line-numbers" ref={lineNumbersRef}>
+        <div className="w-10 border-r border-white/5 text-text-dark text-right py-4 px-2 select-none text-[13px] overflow-hidden" ref={lineNumbersRef}>
           {Array.from({ length: lineCount }).map((_, i) => (
             <div key={i} style={{ height: "22px" }}>
               {i + 1}
@@ -129,7 +129,7 @@ export default function EditorPanel({
         </div>
 
         {/* Textarea Area */}
-        <div className="editor-textarea-wrapper">
+        <div className="relative flex-1 overflow-hidden">
           {/* Simulator Active Line Highlight */}
           {activeSimLine && (
             <div
@@ -143,11 +143,17 @@ export default function EditorPanel({
             Object.entries(heatmapData).map(([lineNum, intensity]) => {
               const num = parseInt(lineNum, 10);
               if (num > lineCount) return null;
+              
+              let heatmapClass = "";
+              if (intensity === "low") heatmapClass = "bg-accent-green/8 border-l border-accent-green";
+              else if (intensity === "medium") heatmapClass = "bg-accent-yellow/12 border-l border-accent-yellow";
+              else if (intensity === "high") heatmapClass = "bg-accent-red/15 border-l border-accent-red";
+
               return (
                 <div
                   key={lineNum}
-                  className={`line-heatmap-overlay ${intensity}`}
-                  style={{ top: `${16 + (num - 1) * 22}px` }}
+                  className={`absolute left-0 right-0 pointer-events-none ${heatmapClass}`}
+                  style={{ top: `${16 + (num - 1) * 22}px`, height: "22px" }}
                   title={`Execution intensity: ${intensity}`}
                 />
               );
@@ -156,7 +162,7 @@ export default function EditorPanel({
 
           <textarea
             ref={textareaRef}
-            className="editor-textarea"
+            className="w-full h-full bg-transparent border-none text-gray-200 font-mono text-[13.5px] p-4 resize-none outline-none overflow-y-auto whitespace-pre"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             onScroll={handleScroll}
@@ -170,10 +176,10 @@ export default function EditorPanel({
         </div>
       </div>
 
-      <div className="card-footer">
-        <div className="explanation-text" style={{ margin: 0, fontSize: "0.75rem" }}>
+      <div className="border-t border-border-color p-3 px-4 flex justify-between items-center">
+        <div className="text-text-muted text-[11px] leading-relaxed m-0">
           {selectedTemplate === "custom" ? (
-            <span className="legend-item" style={{ color: "var(--accent-yellow)" }}>
+            <span className="flex items-center gap-1.5 text-accent-yellow">
               <AlertCircle size={14} /> Custom analysis runs on Gemini AI
             </span>
           ) : (
@@ -181,10 +187,10 @@ export default function EditorPanel({
           )}
         </div>
 
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div className="flex gap-2">
           {/* Analyze Complexity (Free) */}
           <button
-            className="btn-secondary"
+            className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15 transition-all duration-200 disabled:opacity-40"
             onClick={onAnalyze}
             disabled={isAnalyzing}
           >
@@ -193,13 +199,13 @@ export default function EditorPanel({
 
           {/* Step-by-Step Simulator (Paid Gate) */}
           <button
-            className="btn-primary"
+            className="bg-gradient-to-r from-primary to-secondary border-none text-white px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all duration-200 hover:scale-[1.01] hover:brightness-110 shadow-md shadow-primary/35 disabled:opacity-40"
             onClick={onSimulate}
             disabled={isAnalyzing}
           >
             <Play size={14} />
             <span>Simulate Step-by-Step</span>
-            {userTier !== "premium" && <Lock size={12} style={{ marginLeft: "4px" }} />}
+            {userTier !== "premium" && <Lock size={12} className="ml-1" />}
           </button>
         </div>
       </div>
