@@ -1,5 +1,9 @@
 import React, { useState } from "react";
-import { Settings, Award, CreditCard, Sparkles, Coins, Sun, Moon, LogIn, LogOut, User, Clock, Zap } from "lucide-react";
+import { 
+  Settings, Award, CreditCard, Sparkles, Coins, Sun, Moon, 
+  LogIn, LogOut, User, Clock, Zap, Lock, Database, 
+  Calendar, Play, Trash2, Key, ChevronLeft, ChevronRight 
+} from "lucide-react";
 import { getApiKey, saveApiKey } from "../geminiService";
 
 export default function Header({
@@ -13,15 +17,125 @@ export default function Header({
   onOpenLogin,
   onLogout,
   isSidebarOpen,
-  onToggleSidebar
+  onToggleSidebar,
+  history = [],
+  onLoadHistory,
+  onDeleteHistory,
+  onChangePassword,
+  usersDb = []
 }) {
   const [showSettings, setShowSettings] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState(getApiKey());
+  const [settingsTab, setSettingsTab] = useState("profile");
+  const [currPassword, setCurrPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwdStatus, setPwdStatus] = useState({ type: "", text: "" });
+  const [historyPage, setHistoryPage] = useState(1);
 
-  const handleSaveSettings = () => {
-    saveApiKey(apiKeyInput);
-    setShowSettings(false);
-    window.location.reload();
+  const activeUser = usersDb.find(u => u.contact === userContact) || {};
+  const activeUserSignup = activeUser.signup || "2026-06-15 14:32";
+
+  // Mock transactions list
+  const transactions = userTier === "premium" ? [
+    { id: "TXN-9021", desc: "Premium Access Upgrade (1 Month)", amount: "₹40", date: activeUserSignup.split(" ")[0] || "2026-06-15", time: activeUserSignup.split(" ")[1] || "14:32" },
+    { id: "TXN-4820", desc: "Simulation Tokens Pack (10 Tokens)", amount: "₹10", date: "2026-06-15", time: "18:00" }
+  ] : [];
+
+  const handleUpdatePassword = (e) => {
+    e.preventDefault();
+    if (!currPassword || !newPassword || !confirmPassword) {
+      setPwdStatus({ type: "error", text: "Please fill out all password fields." });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwdStatus({ type: "error", text: "New passwords do not match." });
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPwdStatus({ type: "error", text: "Password must be at least 6 characters." });
+      return;
+    }
+    
+    const res = onChangePassword(userContact, currPassword, newPassword);
+    if (res.success) {
+      setPwdStatus({ type: "success", text: res.message });
+      setCurrPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } else {
+      setPwdStatus({ type: "error", text: res.message });
+    }
+  };
+
+  const handleDownloadReceipt = (tx) => {
+    const w = window.open("", "_blank", "width=600,height=600");
+    w.document.write(`
+      <html>
+      <head>
+        <title>Invoice - BigO.ai</title>
+        <style>
+          body { font-family: sans-serif; padding: 40px; color: #1e1b4b; background: #fafafd; line-height: 1.5; }
+          .header { border-bottom: 2px solid #6366f1; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
+          .meta { display: flex; justify-content: space-between; margin-bottom: 40px; font-size: 13px; }
+          .table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+          .table th, .table td { border: 1px solid rgba(99, 102, 241, 0.15); padding: 12px; text-align: left; }
+          .table th { background: #f0f2ff; font-weight: bold; }
+          .total { text-align: right; font-size: 1.3em; font-weight: bold; color: #6366f1; margin-top: 30px; }
+          .footer { border-top: 1px solid rgba(99, 102, 241, 0.1); padding-top: 25px; font-size: 11px; text-align: center; color: #64748b; margin-top: 60px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h1 style="margin: 0; font-size: 24px; color: #6366f1;">BigO.ai</h1>
+            <p style="margin: 5px 0 0 0; font-size: 12px; color: #64748b;">Code Complexity Analyzer & Simulator</p>
+          </div>
+          <div style="text-align: right;">
+            <h3 style="margin: 0; font-size: 14px;">TAX RECEIPT</h3>
+            <p style="margin: 5px 0 0 0; font-size: 12px; font-family: monospace;">${tx.id}</p>
+          </div>
+        </div>
+        <div class="meta">
+          <div>
+            <strong style="color: #6366f1;">CUSTOMER DETAILS:</strong><br>
+            Contact: ${userContact}<br>
+            Tier: ${userTier.toUpperCase()}
+          </div>
+          <div style="text-align: right;">
+            <strong style="color: #6366f1;">PAYMENT META:</strong><br>
+            Date: ${tx.date}<br>
+            Time: ${tx.time}<br>
+            Status: <span style="color: #059669; font-weight: bold;">PAID</span>
+          </div>
+        </div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Item Description</th>
+              <th style="text-align: center;">Qty</th>
+              <th style="text-align: right;">Unit Price</th>
+              <th style="text-align: right;">Total Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>${tx.desc}</td>
+              <td style="text-align: center;">1</td>
+              <td style="text-align: right;">${tx.amount}</td>
+              <td style="text-align: right;">${tx.amount}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="total">Total Amount Billed: ${tx.amount}</div>
+        <div class="footer">
+          Thank you for choosing BigO.ai. Verification ID: txn_${Math.random().toString(36).substring(2, 12).toUpperCase()}<br>
+          For billing support, reach out to billing@bigo.ai.
+        </div>
+        <script>window.print();</script>
+      </body>
+      </html>
+    `);
+    w.document.close();
   };
 
   const toggleTheme = () => {
@@ -29,7 +143,7 @@ export default function Header({
   };
 
   return (
-    <header className="glass-panel flex justify-between items-center p-3 px-4 rounded-xl relative z-50">
+    <header className="glass-panel sticky top-4 z-50 flex justify-between items-center p-3 px-4 rounded-xl backdrop-blur-md">
       <div className="flex items-center gap-2">
         <Sparkles size={22} className="text-primary" />
         <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-text-main via-primary to-secondary bg-clip-text text-transparent">
@@ -149,70 +263,331 @@ export default function Header({
           </button>
         </div>
 
-        {/* Settings gear */}
-        <button
-          className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main p-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15 transition-all duration-200"
-          onClick={() => setShowSettings(true)}
-          title="Gemini API settings"
-        >
-          <Settings size={15} />
-        </button>
+        {/* Settings gear (only visible when logged in) */}
+        {userContact && (
+          <button
+            className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main p-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15 transition-all duration-200"
+            onClick={() => setShowSettings(true)}
+            title="Account Settings"
+          >
+            <Settings size={15} />
+          </button>
+        )}
       </div>
 
       {/* Settings Modal */}
       {showSettings && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-bg-main border border-border-color rounded-xl w-full max-w-[440px] shadow-glass-shadow overflow-hidden">
-            <div className="p-3.5 px-4 border-b border-border-color flex justify-between items-center">
-              <h3 className="flex items-center gap-2 text-sm font-semibold">
-                <Settings size={18} className="text-accent-yellow animate-spin-slow" />
-                <span>API Settings</span>
+          <div className="bg-bg-main border border-border-color rounded-xl w-full max-w-[620px] shadow-glass-shadow overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="p-3.5 px-4 border-b border-border-color flex justify-between items-center bg-white/2">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-text-main">
+                <Settings size={18} className="text-primary animate-spin-slow" />
+                <span>Account Settings & Dashboard</span>
               </h3>
               <button
-                className="bg-transparent border-none text-text-muted cursor-pointer hover:text-text-main transition-colors"
+                className="bg-transparent border-none text-text-muted cursor-pointer hover:text-text-main transition-colors text-lg"
                 onClick={() => setShowSettings(false)}
               >
                 ✕
               </button>
             </div>
-            <div className="p-4">
-              <p className="text-text-muted text-xs leading-relaxed mb-3">
-                Enter your Gemini API key below to enable live calculation and execution simulation for any custom code.
-              </p>
-              <div className="flex flex-col gap-1.5 mb-3">
-                <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Gemini API Key</label>
-                <input
-                  type="password"
-                  className="bg-black/20 border border-border-color rounded-md p-2 text-text-main outline-none text-xs focus:border-primary"
-                  placeholder="AIzaSy..."
-                  value={apiKeyInput}
-                  onChange={(e) => setApiKeyInput(e.target.value)}
-                />
-              </div>
-              <p className="text-[10px] text-text-dark leading-relaxed">
-                Don't have a key? Get a free Gemini API key from{" "}
-                <a
-                  href="https://aistudio.google.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  Google AI Studio
-                </a>.
-              </p>
-            </div>
-            <div className="p-3 px-4 border-t border-border-color flex justify-end gap-2 bg-black/5">
+
+            {/* Modal Tabs Switcher */}
+            <div className="flex border-b border-border-color bg-white/1">
               <button
-                className="bg-white/5 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15"
-                onClick={() => setShowSettings(false)}
+                className={`flex-1 py-3 text-xs font-semibold border-b-2 bg-transparent cursor-pointer transition-all ${
+                  settingsTab === "profile" 
+                    ? "text-primary border-primary bg-primary/5" 
+                    : "text-text-muted border-transparent hover:text-text-main"
+                }`}
+                onClick={() => setSettingsTab("profile")}
               >
-                Cancel
+                <div className="flex items-center justify-center gap-1.5">
+                  <User size={13} />
+                  <span>Profile & Security</span>
+                </div>
               </button>
               <button
-                className="bg-gradient-to-r from-primary to-secondary text-white px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer"
-                onClick={handleSaveSettings}
+                className={`flex-1 py-3 text-xs font-semibold border-b-2 bg-transparent cursor-pointer transition-all ${
+                  settingsTab === "history" 
+                    ? "text-primary border-primary bg-primary/5" 
+                    : "text-text-muted border-transparent hover:text-text-main"
+                }`}
+                onClick={() => setSettingsTab("history")}
               >
-                Save Key
+                <div className="flex items-center justify-center gap-1.5">
+                  <Clock size={13} />
+                  <span>Code History Logs ({history.length})</span>
+                </div>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 overflow-y-auto flex-1 text-xs">
+              {settingsTab === "profile" ? (
+                <div className="flex flex-col gap-5">
+                  {/* Account details */}
+                  <div className="bg-white/3 border border-border-color rounded-lg p-4">
+                    <h4 className="font-bold text-text-main mb-2.5 uppercase tracking-wider text-[10px] text-primary">Account Details</h4>
+                    <div className="grid grid-cols-2 gap-3 text-text-muted">
+                      <div>
+                        <span className="text-[10px] text-text-dark block uppercase">Email / Mobile</span>
+                        <strong className="text-text-main text-[13px]">{userContact}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-text-dark block uppercase">Account Level</span>
+                        <strong className="text-text-main text-[13px] uppercase flex items-center gap-1">
+                          {userTier === "premium" ? (
+                            <span className="text-accent-purple font-bold">Premium (Paid)</span>
+                          ) : (
+                            <span className="text-text-dark font-medium">Free Tier</span>
+                          )}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-text-dark block uppercase">Signup Timestamp</span>
+                        <span className="font-mono text-text-main">{activeUserSignup}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-text-dark block uppercase">Subscription Expiry</span>
+                        <span className="text-text-main font-semibold">
+                          {userTier === "premium" ? "Active (Expires in 30 Days)" : "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Change Password */}
+                  <form onSubmit={handleUpdatePassword} className="bg-white/3 border border-border-color rounded-lg p-4 flex flex-col gap-3">
+                    <h4 className="font-bold text-text-main uppercase tracking-wider text-[10px] text-primary flex items-center gap-1.5">
+                      <Key size={13} />
+                      <span>Change Account Password</span>
+                    </h4>
+
+                    {pwdStatus.text && (
+                      <div className={`p-2 rounded font-medium text-[11px] ${
+                        pwdStatus.type === "success" ? "bg-accent-green/10 text-accent-green border border-accent-green/20" : "bg-accent-red/10 text-accent-red border border-accent-red/20"
+                      }`}>
+                        {pwdStatus.text}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] text-text-dark uppercase">Current Password</label>
+                        <input
+                          type="password"
+                          className="bg-black/25 border border-border-color rounded p-1.5 text-text-main outline-none focus:border-primary text-xs"
+                          value={currPassword}
+                          onChange={(e) => setCurrPassword(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] text-text-dark uppercase">New Password</label>
+                        <input
+                          type="password"
+                          className="bg-black/25 border border-border-color rounded p-1.5 text-text-main outline-none focus:border-primary text-xs"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] text-text-dark uppercase">Confirm Password</label>
+                        <input
+                          type="password"
+                          className="bg-black/25 border border-border-color rounded p-1.5 text-text-main outline-none focus:border-primary text-xs"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end mt-1.5">
+                      <button type="submit" className="bg-gradient-to-r from-primary to-secondary text-white p-1.5 px-3 rounded text-[11px] font-semibold cursor-pointer border-none shadow-md shadow-primary/20">
+                        Update Password
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* Transaction Receipts (only for premium users) */}
+                  {userTier === "premium" && (
+                    <div className="bg-white/3 border border-border-color rounded-lg p-4">
+                      <h4 className="font-bold text-text-main mb-2 uppercase tracking-wider text-[10px] text-primary">Simulated Transaction Receipts</h4>
+                      <div className="overflow-hidden border border-border-color rounded-lg">
+                        <table className="w-full text-[11px] border-collapse text-left">
+                          <thead>
+                            <tr className="bg-white/5 border-b border-border-color text-text-muted font-semibold">
+                              <th className="p-2">Transaction ID</th>
+                              <th className="p-2">Description</th>
+                              <th className="p-2">Amount</th>
+                              <th className="p-2 text-right">Receipt</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {transactions.map(tx => (
+                              <tr key={tx.id} className="border-b border-border-color/60 hover:bg-white/1 text-text-main">
+                                <td className="p-2 font-mono">{tx.id}</td>
+                                <td className="p-2 text-text-muted">{tx.desc}</td>
+                                <td className="p-2 font-semibold text-accent-yellow">{tx.amount}</td>
+                                <td className="p-2 text-right">
+                                  <button
+                                    onClick={() => handleDownloadReceipt(tx)}
+                                    className="bg-primary/10 border border-primary/20 text-primary p-0.5 px-2 rounded hover:bg-primary/20 transition-all cursor-pointer text-[10px] font-semibold"
+                                  >
+                                    Invoice
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* History logs tab */
+                <div className="flex flex-col gap-3">
+                  {history.length === 0 ? (
+                    <div className="text-center p-8 text-text-dark flex flex-col items-center gap-2">
+                      <Clock size={28} className="opacity-25 text-primary" />
+                      <p>No history records found. Analyze custom code to populate history logs.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="overflow-x-auto border border-border-color rounded-lg">
+                        <table className="w-full text-[12px] text-left border-collapse">
+                          <thead>
+                            <tr className="bg-white/3 border-b border-border-color text-text-muted font-semibold">
+                              <th className="p-2 px-3">Algorithm</th>
+                              <th className="p-2">Language</th>
+                              <th className="p-2 text-center">Complexity</th>
+                              {userTier === "premium" && <th className="p-2 text-center">Tokens</th>}
+                              <th className="p-2 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const hPageSize = 6;
+                              const maxHLogs = userTier === "premium" ? 30 : 20;
+                              const slicedHistory = history.slice(0, maxHLogs);
+                              const hTotalPages = Math.ceil(slicedHistory.length / hPageSize);
+                              const hStartIndex = (historyPage - 1) * hPageSize;
+                              const paginatedH = slicedHistory.slice(hStartIndex, hStartIndex + hPageSize);
+
+                              return paginatedH.map((item, index) => {
+                                const globalIdx = hStartIndex + index;
+                                return (
+                                  <tr key={globalIdx} className="hover:bg-white/2 border-b border-border-color/60 text-text-main transition-colors">
+                                    <td className="p-2 px-3 font-semibold max-w-[140px] overflow-hidden text-ellipsis whitespace-nowrap">
+                                      {item.name || "Custom Code"}
+                                    </td>
+                                    <td className="p-2">
+                                      <span className="text-[10px] bg-secondary/15 text-secondary border border-secondary/25 px-1 py-0.2 rounded font-mono uppercase">
+                                        {item.language}
+                                      </span>
+                                    </td>
+                                    <td className="p-2 text-center">
+                                      <span className="font-mono font-bold text-primary">{item.timeComplexity}</span>
+                                    </td>
+                                    {userTier === "premium" && (
+                                      <td className="p-2 text-center font-mono font-semibold text-accent-yellow">
+                                        {item.tokensUsed !== undefined ? item.tokensUsed : 0}
+                                      </td>
+                                    )}
+                                    <td className="p-2 text-right flex gap-1 justify-end">
+                                      <button
+                                        className="bg-primary hover:bg-primary-hover text-white p-1 px-2.5 rounded text-[10px] font-semibold flex items-center gap-1 border-none cursor-pointer"
+                                        onClick={() => {
+                                          onLoadHistory(item);
+                                          setShowSettings(false);
+                                        }}
+                                      >
+                                        <Play size={8} />
+                                        <span>Load</span>
+                                      </button>
+                                      <button
+                                        className="bg-transparent text-text-dark hover:text-accent-red p-1 rounded hover:bg-white/5 border-none cursor-pointer"
+                                        onClick={() => {
+                                          onDeleteHistory(globalIdx);
+                                          // Handle page overflow if deleting last item on page
+                                          const nextTotal = slicedHistory.length - 1;
+                                          const nextPages = Math.ceil(nextTotal / hPageSize);
+                                          if (historyPage > nextPages && nextPages > 0) {
+                                            setHistoryPage(nextPages);
+                                          }
+                                        }}
+                                        title="Delete log"
+                                      >
+                                        <Trash2 size={11} />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              });
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Pagination buttons */}
+                      {(() => {
+                        const hPageSize = 6;
+                        const maxHLogs = userTier === "premium" ? 30 : 20;
+                        const slicedHistory = history.slice(0, maxHLogs);
+                        const hTotalPages = Math.ceil(slicedHistory.length / hPageSize);
+                        if (hTotalPages <= 1) return null;
+
+                        return (
+                          <div className="flex justify-center items-center gap-1 mt-2">
+                            <button
+                              disabled={historyPage === 1}
+                              onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
+                              className="bg-white/5 border border-border-color text-text-muted p-1 px-2 rounded cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-[10px]"
+                            >
+                              Prev
+                            </button>
+                            {Array.from({ length: hTotalPages }).map((_, i) => {
+                              const pageNum = i + 1;
+                              const isActive = pageNum === historyPage;
+                              return (
+                                <button
+                                  key={pageNum}
+                                  onClick={() => setHistoryPage(pageNum)}
+                                  className={`p-1 px-2 rounded text-[10px] font-bold cursor-pointer border border-none ${
+                                    isActive
+                                      ? "bg-primary text-white shadow-sm shadow-primary/20"
+                                      : "bg-white/5 text-text-muted hover:bg-white/10"
+                                  }`}
+                                >
+                                  {pageNum}
+                                </button>
+                              );
+                            })}
+                            <button
+                              disabled={historyPage === hTotalPages}
+                              onClick={() => setHistoryPage(p => Math.min(hTotalPages, p + 1))}
+                              className="bg-white/5 border border-border-color text-text-muted p-1 px-2 rounded cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-[10px]"
+                            >
+                              Next
+                            </button>
+                          </div>
+                        );
+                      })()}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 px-4 border-t border-border-color flex justify-end gap-2 bg-black/10">
+              <button
+                className="bg-white/5 border border-border-color text-text-main px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15"
+                onClick={() => setShowSettings(false)}
+              >
+                Close Settings
               </button>
             </div>
           </div>

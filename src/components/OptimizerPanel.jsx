@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { Sparkles, ArrowRight, Copy, Check, Lock, Award, TrendingUp } from "lucide-react";
+import { parseMarkdown } from "../utils/markdownParser";
+
 
 export default function OptimizerPanel({
   userTier,
@@ -228,9 +230,10 @@ export default function OptimizerPanel({
       <h4 className="text-[12.5px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">
         Why is this solution better?
       </h4>
-      <div className="text-text-muted text-[13.5px] leading-relaxed bg-white/2 border border-border-color rounded-lg p-3 whitespace-pre-wrap">
-        {explanation || "Your code is already running at optimal complexity! No further improvements were detected."}
+      <div className="text-text-muted text-[13.5px] leading-relaxed bg-white/2 border border-border-color rounded-lg p-3">
+        {explanation ? parseMarkdown(explanation) : "Your code is already running at optimal complexity! No further improvements were detected."}
       </div>
+
     </div>
   );
 }

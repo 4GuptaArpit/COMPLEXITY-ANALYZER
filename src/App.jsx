@@ -8,11 +8,21 @@ import OptimizerPanel from "./components/OptimizerPanel";
 import SimulatorPanel from "./components/SimulatorPanel";
 import HistorySection from "./components/HistorySection";
 import ConverterPanel from "./components/ConverterPanel";
+import FeatureComparison from "./components/FeatureComparison";
+import Footer from "./components/Footer";
 import { mockAlgorithms } from "./mockData";
 import { mockTranslations } from "./mockConverterData";
+import {
+  mergeSortMockAnalysis,
+  binarySearchRecursiveMockAnalysis,
+  fibonacciMemoizedMockAnalysis,
+  twoSumOptimizedMockAnalysis
+} from "./mockCustomData";
 import { hasApiKey, analyzeCodeWithGemini, convertCodeWithGemini } from "./geminiService";
+import { parseMarkdown } from "./utils/markdownParser";
 
 export default function App() {
+
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem("BIGO_THEME") || "dark";
   });
@@ -33,9 +43,9 @@ export default function App() {
     if (saved) return JSON.parse(saved);
     
     const defaults = [
-      { contact: "alex.coder@gmail.com", tier: "free", tokens: 0, signup: "2026-06-12 14:32" },
-      { contact: "+919988776655", tier: "premium", tokens: 70, signup: "2026-06-12 18:15" },
-      { contact: "student_prep@edu.in", tier: "free", tokens: 0, signup: "2026-06-12 21:05" }
+      { contact: "alex.coder@gmail.com", password: "password123", tier: "free", tokens: 0, signup: "2026-06-12 14:32" },
+      { contact: "+919988776655", password: "password123", tier: "premium", tokens: 70, signup: "2026-06-12 18:15" },
+      { contact: "student_prep@edu.in", password: "password123", tier: "free", tokens: 0, signup: "2026-06-12 21:05" }
     ];
     localStorage.setItem("BIGO_USERS_DB", JSON.stringify(defaults));
     return defaults;
@@ -84,6 +94,26 @@ export default function App() {
   const [convertedCode, setConvertedCode] = useState("");
   const [conversionExplanation, setConversionExplanation] = useState("");
   const [isConverting, setIsConverting] = useState(false);
+
+  const [adminTab, setAdminTab] = useState("users");
+  const [feedbacks, setFeedbacks] = useState(() => {
+    const saved = localStorage.getItem("BIGO_FEEDBACK_DB");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const refreshFeedback = () => {
+    const saved = localStorage.getItem("BIGO_FEEDBACK_DB");
+    setFeedbacks(saved ? JSON.parse(saved) : []);
+  };
+
+  const handleAdminDeleteFeedback = (id) => {
+    setFeedbacks((prev) => {
+      const updated = prev.filter((f) => f.id !== id);
+      localStorage.setItem("BIGO_FEEDBACK_DB", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
 
 
   useEffect(() => {
@@ -176,6 +206,47 @@ export default function App() {
   };
 
   const loadMockCustomAnalysis = () => {
+    // 1. Check if the pasted code matches any optimized or standard algorithm signature
+    let matchedAlgo = null;
+
+    if (code.includes("mergeSort") || code.includes("function merge(")) {
+      matchedAlgo = mergeSortMockAnalysis;
+    } else if (code.includes("binarySearchRecursive")) {
+      matchedAlgo = binarySearchRecursiveMockAnalysis;
+    } else if (code.includes("fibonacciMemoized") || code.includes("n in memo")) {
+      matchedAlgo = fibonacciMemoizedMockAnalysis;
+    } else if (code.includes("twoSumOptimized") || (code.includes("new Map()") && code.includes("complement"))) {
+      matchedAlgo = twoSumOptimizedMockAnalysis;
+    } else if (code.includes("bubbleSort")) {
+      matchedAlgo = mockAlgorithms.find(a => a.id === "bubble_sort");
+    } else if (code.includes("binarySearch")) {
+      matchedAlgo = mockAlgorithms.find(a => a.id === "binary_search");
+    } else if (code.includes("fibonacci")) {
+      matchedAlgo = mockAlgorithms.find(a => a.id === "recursive_fibonacci");
+    } else if (code.includes("twoSum")) {
+      matchedAlgo = mockAlgorithms.find(a => a.id === "two_sum");
+    }
+
+    if (matchedAlgo) {
+      setAnalysisResult({
+        timeComplexity: matchedAlgo.timeComplexity,
+        spaceComplexity: matchedAlgo.spaceComplexity,
+        explanation: matchedAlgo.explanation,
+        optimizedCode: matchedAlgo.optimizedCode,
+        optimizationExplanation: matchedAlgo.optimizationExplanation,
+        heatmap: matchedAlgo.heatmap,
+        simulation: matchedAlgo.simulation,
+        quiz: matchedAlgo.quiz
+      });
+      setActiveStepIndex(0);
+      setActiveSimLine(null);
+      if (userContact && userTier !== "anonymous") {
+        addToHistory(matchedAlgo.timeComplexity, matchedAlgo.spaceComplexity, matchedAlgo);
+      }
+      return;
+    }
+
+    // 2. Default regex-based offline analyzer for arbitrary custom code
     const codeLower = code.toLowerCase();
     let time = "O(1)";
     let space = "O(1)";
@@ -259,7 +330,7 @@ export default function App() {
     }
   };
 
-  const addToHistory = (timeComp, spaceComp, result) => {
+  const addToHistory = (timeComp, spaceComp, result, tokensUsed = 0) => {
     let name = "Custom Code";
     if (selectedTemplate !== "custom") {
       name = mockAlgorithms.find((a) => a.id === selectedTemplate)?.name || "Template";
@@ -280,10 +351,12 @@ export default function App() {
       explanation: result.explanation,
       heatmap: result.heatmap,
       simulation: result.simulation,
-      quiz: result.quiz
+      quiz: result.quiz,
+      tokensUsed: tokensUsed
     };
 
-    setHistory((prev) => [newItem, ...prev.slice(0, 19)]);
+    const maxLogs = userTier === "premium" ? 30 : 20;
+    setHistory((prev) => [newItem, ...prev.slice(0, maxLogs - 1)]);
   };
 
   const handleAnalyze = async () => {
@@ -409,6 +482,15 @@ export default function App() {
         updateDbUserTokens(userContact, newCount);
         return newCount;
       });
+      // Mark tokensUsed = 1 in the most recent history log entry
+      setHistory((prev) => {
+        if (prev.length > 0) {
+          const updated = [...prev];
+          updated[0] = { ...updated[0], tokensUsed: 1 };
+          return updated;
+        }
+        return prev;
+      });
     }
 
     setActiveTab("simulator");
@@ -463,6 +545,38 @@ export default function App() {
     }, 1000);
   };
 
+  const handleSocialLogin = (provider) => {
+    setIsSendingOtp(true);
+    const mockEmail = provider === "Google" ? "google.coder@gmail.com" : "github.developer@github.com";
+    
+    setTimeout(() => {
+      setIsSendingOtp(false);
+      setUserContact(mockEmail);
+      
+      const existing = usersDb.find((u) => u.contact === mockEmail);
+      if (existing) {
+        setUserTier(existing.tier);
+        setTokens(existing.tokens);
+      } else {
+        const newUser = {
+          contact: mockEmail,
+          password: "password123",
+          tier: "free",
+          tokens: 0,
+          signup: new Date().toISOString().replace('T', ' ').substring(0, 16)
+        };
+        setUsersDb((prev) => [...prev, newUser]);
+        setUserTier("free");
+        setTokens(0);
+      }
+
+      setShowLogin(false);
+      setContactInput("");
+      setOtpInput("");
+      alert(`Successfully logged in via ${provider} as: ${mockEmail}`);
+    }, 1000);
+  };
+
   const handleVerifyOtp = () => {
     if (!otpInput) {
       alert("Please enter the 4-digit verification code.");
@@ -478,6 +592,7 @@ export default function App() {
     } else {
       const newUser = {
         contact: contactInput,
+        password: "password123",
         tier: "free",
         tokens: 0,
         signup: new Date().toISOString().replace('T', ' ').substring(0, 16)
@@ -500,6 +615,33 @@ export default function App() {
     setTokens(70);
     setHistory([]);
     alert("Logged out successfully.");
+  };
+
+  const handleChangePassword = (contact, currentPassword, newPassword) => {
+    let success = false;
+    let message = "";
+    
+    setUsersDb((prev) => {
+      const user = prev.find((u) => u.contact === contact);
+      if (!user) {
+        message = "Account not found.";
+        return prev;
+      }
+      
+      const savedPass = user.password || "password123";
+      if (savedPass !== currentPassword) {
+        message = "Incorrect current password.";
+        return prev;
+      }
+      
+      success = true;
+      message = "Password updated successfully!";
+      return prev.map((u) =>
+        u.contact === contact ? { ...u, password: newPassword } : u
+      );
+    });
+    
+    return { success, message };
   };
 
   const handleDemoSetTier = (tier) => {
@@ -616,6 +758,11 @@ export default function App() {
           onLogout={handleLogout}
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          history={history}
+          onLoadHistory={handleLoadHistory}
+          onDeleteHistory={handleDeleteHistory}
+          onChangePassword={handleChangePassword}
+          usersDb={usersDb}
         />
 
         <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1">
@@ -635,10 +782,11 @@ export default function App() {
             heatmapData={analysisResult.heatmap}
             showHeatmap={userTier !== "anonymous"}
             detectedLanguage={detectedLanguage}
+            hasApiKey={hasApiKey()}
           />
 
           {/* Analysis Tab Panel */}
-          <div className="glass-panel flex flex-col min-h-[540px]">
+          <div className="glass-panel flex flex-col h-[630px]">
             <div className="flex border-b border-border-color bg-white/1 rounded-t-xl">
               <button
                 className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-[13px] font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main relative ${
@@ -696,7 +844,7 @@ export default function App() {
                 <div className="loader-text">AI is compiling & simulating your algorithm...</div>
               </div>
             ) : (
-              <div className="p-4 flex flex-col flex-1">
+              <div className="p-4 flex flex-col flex-1 overflow-y-auto">
                 {activeTab === "complexity" && (
                   <div className="flex flex-col gap-4 mt-2.5">
                     <div className="flex gap-3 mb-1">
@@ -721,12 +869,14 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="text-text-muted text-[13.5px] leading-relaxed" style={{ whiteSpace: "pre-wrap" }}>
-                      {analysisResult.explanation || "No analysis generated yet. Click 'Analyze Complexity'."}
+                    <div className="text-text-muted text-[13.5px] leading-relaxed">
+                      {analysisResult.explanation ? parseMarkdown(analysisResult.explanation) : "No analysis generated yet. Click 'Analyze Complexity'."}
                     </div>
 
                     <ChartViewer timeComplexity={analysisResult.timeComplexity} />
+                    <FeatureComparison userTier={userTier} />
                   </div>
+
                 )}
 
                 {activeTab === "optimizer" && (
@@ -777,91 +927,166 @@ export default function App() {
           </div>
         </div>
 
-        {/* Full-width History Section (visible to logged-in Free/Premium users) */}
-        {userContact && userTier !== "anonymous" && (
-          <HistorySection
-            history={history}
-            onLoadHistory={handleLoadHistory}
-            onDeleteHistory={handleDeleteHistory}
-            userTier={userTier}
-          />
-        )}
 
         {/* Collapsible Admin User Management Drawer */}
-        <div className="mt-4 border-t border-border-color pt-4">
-          <div className="flex justify-between items-center cursor-pointer p-2 px-3 bg-white/2 border border-border-color rounded-lg" onClick={() => setIsAdminOpen(!isAdminOpen)}>
-            <div className="flex items-center gap-2 text-[13px] font-semibold text-text-main">
-              <Database size={15} className="text-primary" />
-              <span>Simulated Database: User Administration Table</span>
-            </div>
-            <div className="text-xs text-text-muted">
-              {isAdminOpen ? "Collapse [-]" : "Expand User Management Table [+]"}
-            </div>
-          </div>
-
-          {isAdminOpen && (
-            <div className="overflow-x-auto mt-3 border border-border-color rounded-lg glass-panel">
-              <table className="w-full border-collapse text-xs text-left">
-                <thead>
-                  <tr className="bg-white/3 border-b border-border-color">
-                    <th className="text-text-muted font-semibold p-2 px-3">Email / Mobile</th>
-                    <th className="text-text-muted font-semibold p-2 px-3">Account Tier</th>
-                    <th className="text-text-muted font-semibold p-2 px-3">Tokens Balance</th>
-                    <th className="text-text-muted font-semibold p-2 px-3">Signup Time</th>
-                    <th className="text-text-muted font-semibold p-2 px-3">Admin Controls</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {usersDb.map((user) => (
-                    <tr key={user.contact} className="hover:bg-white/2" style={user.contact === userContact ? { background: "rgba(99, 102, 241, 0.08)" } : {}}>
-                      <td className="p-2 px-3 border-b border-border-color font-semibold">
-                        {user.contact} {user.contact === userContact ? " (You)" : ""}
-                      </td>
-                      <td className="p-2 px-3 border-b border-border-color">
-                        <span
-                          className="bg-gradient-to-r from-primary to-secondary text-[9px] font-semibold px-2 py-0.5 rounded text-white uppercase tracking-wider"
-                          style={user.tier === "premium" ? {} : { background: "var(--color-text-dark)" }}
-                        >
-                          {user.tier.toUpperCase()}
+        {window.location.search.includes("admin=true") && (
+          <div className="mt-4 border-t border-border-color pt-4">
+            <div className="flex justify-between items-center p-2 px-3 bg-white/2 border border-border-color rounded-lg">
+              <div className="flex items-center gap-4 text-[13px] font-semibold text-text-main">
+                <div 
+                  className="flex items-center gap-2 cursor-pointer"
+                  onClick={() => setIsAdminOpen(!isAdminOpen)}
+                >
+                  <Database size={15} className="text-primary" />
+                  <span>Simulated Database Dashboard</span>
+                </div>
+                {isAdminOpen && (
+                  <div className="flex gap-2 border-l border-border-color pl-4">
+                    <button
+                      className={`px-2.5 py-1 rounded text-[11px] cursor-pointer font-medium border-none ${
+                        adminTab === "users" ? "bg-primary text-white" : "text-text-muted hover:text-text-main bg-white/5"
+                      }`}
+                      onClick={() => setAdminTab("users")}
+                    >
+                      Users Directory
+                    </button>
+                    <button
+                      className={`px-2.5 py-1 rounded text-[11px] cursor-pointer font-medium relative border-none ${
+                        adminTab === "feedback" ? "bg-primary text-white" : "text-text-muted hover:text-text-main bg-white/5"
+                      }`}
+                      onClick={() => setAdminTab("feedback")}
+                    >
+                      Feedback Inbox
+                      {feedbacks.length > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 bg-accent-red text-white text-[8px] px-1 py-0.2 rounded-full font-bold">
+                          {feedbacks.length}
                         </span>
-                      </td>
-                      <td className="p-2 px-3 border-b border-border-color font-mono font-semibold">{user.tokens} Tokens</td>
-                      <td className="p-2 px-3 border-b border-border-color text-text-muted">{user.signup}</td>
-                      <td className="p-2 px-3 border-b border-border-color">
-                        <button
-                          className="bg-primary text-white p-1 px-2 rounded cursor-pointer text-[10px] font-medium mr-1 border-none"
-                          onClick={() => handleAdminToggleTier(user.contact)}
-                        >
-                          Toggle Tier
-                        </button>
-                        <button
-                          className="bg-primary text-white p-1 px-2 rounded cursor-pointer text-[10px] font-medium mr-1 border-none"
-                          onClick={() => handleAdminAddTokens(user.contact)}
-                        >
-                          +10 Tokens
-                        </button>
-                        <button
-                          className="bg-accent-red text-white p-1 px-2 rounded cursor-pointer text-[10px] font-medium border-none"
-                          onClick={() => handleAdminDelete(user.contact)}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {usersDb.length === 0 && (
-                    <tr>
-                      <td colSpan="5" className="p-4 border-b border-border-color text-center text-text-dark">
-                        No records in user table. Create an account to register!
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="text-xs text-text-muted cursor-pointer" onClick={() => setIsAdminOpen(!isAdminOpen)}>
+                {isAdminOpen ? "Collapse [-]" : "Expand Dashboard [+]"}
+              </div>
             </div>
-          )}
-        </div>
+
+            {isAdminOpen && adminTab === "users" && (
+              <div className="overflow-x-auto mt-3 border border-border-color rounded-lg glass-panel">
+                <table className="w-full border-collapse text-xs text-left">
+                  <thead>
+                    <tr className="bg-white/3 border-b border-border-color">
+                      <th className="text-text-muted font-semibold p-2 px-3">Email / Mobile</th>
+                      <th className="text-text-muted font-semibold p-2 px-3">Account Tier</th>
+                      <th className="text-text-muted font-semibold p-2 px-3">Tokens Balance</th>
+                      <th className="text-text-muted font-semibold p-2 px-3">Signup Time</th>
+                      <th className="text-text-muted font-semibold p-2 px-3">Admin Controls</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usersDb.map((user) => (
+                      <tr key={user.contact} className="hover:bg-white/2" style={user.contact === userContact ? { background: "rgba(99, 102, 241, 0.08)" } : {}}>
+                        <td className="p-2 px-3 border-b border-border-color font-semibold">
+                          {user.contact} {user.contact === userContact ? " (You)" : ""}
+                        </td>
+                        <td className="p-2 px-3 border-b border-border-color">
+                          <span
+                            className="bg-gradient-to-r from-primary to-secondary text-[9px] font-semibold px-2 py-0.5 rounded text-white uppercase tracking-wider"
+                            style={user.tier === "premium" ? {} : { background: "var(--color-text-dark)" }}
+                          >
+                            {user.tier.toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="p-2 px-3 border-b border-border-color font-mono font-semibold">{user.tokens} Tokens</td>
+                        <td className="p-2 px-3 border-b border-border-color text-text-muted">{user.signup}</td>
+                        <td className="p-2 px-3 border-b border-border-color">
+                          <button
+                            className="bg-primary text-white p-1 px-2 rounded cursor-pointer text-[10px] font-medium mr-1 border-none"
+                            onClick={() => handleAdminToggleTier(user.contact)}
+                          >
+                            Toggle Tier
+                          </button>
+                          <button
+                            className="bg-primary text-white p-1 px-2 rounded cursor-pointer text-[10px] font-medium mr-1 border-none"
+                            onClick={() => handleAdminAddTokens(user.contact)}
+                          >
+                            +10 Tokens
+                          </button>
+                          <button
+                            className="bg-accent-red text-white p-1 px-2 rounded cursor-pointer text-[10px] font-medium border-none"
+                            onClick={() => handleAdminDelete(user.contact)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {usersDb.length === 0 && (
+                      <tr>
+                        <td colSpan="5" className="p-4 border-b border-border-color text-center text-text-dark">
+                          No records in user table. Create an account to register!
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {isAdminOpen && adminTab === "feedback" && (
+              <div className="overflow-x-auto mt-3 border border-border-color rounded-lg glass-panel">
+                <table className="w-full border-collapse text-xs text-left">
+                  <thead>
+                    <tr className="bg-white/3 border-b border-border-color">
+                      <th className="text-text-muted font-semibold p-2 px-3">Name</th>
+                      <th className="text-text-muted font-semibold p-2 px-3">Email</th>
+                      <th className="text-text-muted font-semibold p-2 px-3">Feedback Message</th>
+                      <th className="text-text-muted font-semibold p-2 px-3">Submitted At</th>
+                      <th className="text-text-muted font-semibold p-2 px-3">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {feedbacks.map((fb) => (
+                      <tr key={fb.id} className="hover:bg-white/2">
+                        <td className="p-2 px-3 border-b border-border-color font-semibold">
+                          {fb.name}
+                        </td>
+                        <td className="p-2 px-3 border-b border-border-color">
+                          {fb.email}
+                        </td>
+                        <td className="p-2 px-3 border-b border-border-color whitespace-pre-wrap max-w-[400px]">
+                          {fb.message}
+                        </td>
+                        <td className="p-2 px-3 border-b border-border-color text-text-muted">
+                          {fb.date} {fb.time}
+                        </td>
+                        <td className="p-2 px-3 border-b border-border-color">
+                          <button
+                            className="bg-accent-red text-white p-1 px-2 rounded cursor-pointer text-[10px] font-medium border-none"
+                            onClick={() => handleAdminDeleteFeedback(fb.id)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {feedbacks.length === 0 && (
+                      <tr>
+                        <td colSpan="5" className="p-4 border-b border-border-color text-center text-text-dark">
+                          No feedback submissions found in BIGO_FEEDBACK_DB.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        <Footer onFeedbackSubmitted={refreshFeedback} />
       </main>
+
 
       {/* OTP Authentication Modal */}
       {showLogin && (
@@ -899,6 +1124,39 @@ export default function App() {
                     </button>
                     <button className="bg-gradient-to-r from-primary to-secondary text-white px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-40" onClick={handleSendOtp} disabled={isSendingOtp}>
                       {isSendingOtp ? "Generating Code..." : "Send OTP"}
+                    </button>
+                  </div>
+
+                  {/* OR Divider */}
+                  <div className="flex items-center gap-2 my-4">
+                    <span className="h-[1px] bg-border-color flex-1" />
+                    <span className="text-[9px] text-text-dark uppercase font-bold tracking-wider">Or Connect With</span>
+                    <span className="h-[1px] bg-border-color flex-1" />
+                  </div>
+
+                  {/* Social buttons */}
+                  <div className="flex flex-col gap-2">
+                    <button 
+                      onClick={() => handleSocialLogin("Google")}
+                      className="w-full bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer hover:bg-gray-500/15 transition-all flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+                      </svg>
+                      <span>Sign in with Google</span>
+                    </button>
+
+                    <button 
+                      onClick={() => handleSocialLogin("GitHub")}
+                      className="w-full bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer hover:bg-gray-500/15 transition-all flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                        <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482C19.138 20.193 22 16.44 22 12.017 22 6.484 17.522 2 12 2z" />
+                      </svg>
+                      <span>Sign in with GitHub</span>
                     </button>
                   </div>
                 </>

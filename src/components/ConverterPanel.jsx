@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { Languages, Copy, Check, Lock, Sparkles, AlertCircle, RefreshCw } from "lucide-react";
+import { parseMarkdown } from "../utils/markdownParser";
+
 
 export default function ConverterPanel({
   userTier,
@@ -117,9 +119,10 @@ export default function ConverterPanel({
             <h4 className="text-[12.5px] font-semibold text-text-muted uppercase tracking-wider flex items-center gap-1">
               <Sparkles size={12} className="text-primary" /> Key Translation Notes
             </h4>
-            <div className="text-text-muted text-[13.5px] leading-relaxed bg-white/2 border border-border-color rounded-lg p-3 whitespace-pre-wrap">
-              {explanation}
+            <div className="text-text-muted text-[13.5px] leading-relaxed bg-white/2 border border-border-color rounded-lg p-3">
+              {explanation ? parseMarkdown(explanation) : "No translation notes available."}
             </div>
+
           </div>
         </div>
       ) : (

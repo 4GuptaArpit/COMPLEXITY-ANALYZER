@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from "react";
-import { Play, Sparkles, AlertCircle, Lock } from "lucide-react";
+import { Play, Sparkles, AlertCircle, Lock, Database } from "lucide-react";
 import { mockAlgorithms } from "../mockData";
 
 export default function EditorPanel({
@@ -16,7 +16,8 @@ export default function EditorPanel({
   activeSimLine,
   heatmapData,
   showHeatmap,
-  detectedLanguage
+  detectedLanguage,
+  hasApiKey
 }) {
   const textareaRef = useRef(null);
   const lineNumbersRef = useRef(null);
@@ -70,7 +71,7 @@ export default function EditorPanel({
   };
 
   return (
-    <div className="glass-panel flex flex-col min-h-[540px]">
+    <div className="glass-panel flex flex-col h-[630px]">
       <div className="border-b border-border-color p-3 px-4 flex justify-between items-center">
         <h3 className="flex items-center gap-2 text-sm font-semibold">
           <Sparkles size={18} className="text-primary" />
@@ -179,9 +180,15 @@ export default function EditorPanel({
       <div className="border-t border-border-color p-3 px-4 flex justify-between items-center">
         <div className="text-text-muted text-[11px] leading-relaxed m-0">
           {selectedTemplate === "custom" ? (
-            <span className="flex items-center gap-1.5 text-accent-yellow">
-              <AlertCircle size={14} /> Custom analysis runs on Gemini AI
-            </span>
+            hasApiKey ? (
+              <span className="flex items-center gap-1.5 text-accent-green">
+                <Sparkles size={14} className="text-accent-green animate-pulse" /> Custom analysis powered by Gemini AI
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-text-muted">
+                <Database size={14} /> Offline mode (Local analysis)
+              </span>
+            )
           ) : (
             <span>Running template: <strong>{mockAlgorithms.find(a => a.id === selectedTemplate)?.name}</strong></span>
           )}
