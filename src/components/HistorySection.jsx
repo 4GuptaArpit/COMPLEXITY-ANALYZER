@@ -41,7 +41,7 @@ export default function HistorySection({ history, onLoadHistory, onDeleteHistory
         </div>
       ) : (
         <div className="overflow-x-auto border border-border-color rounded-lg">
-          <table className="w-full border-collapse text-xs text-left">
+          <table className="w-full border-collapse text-[13px] text-left">
             <thead>
               <tr className="bg-white/3 dark:bg-black/15 border-b border-border-color text-text-muted font-semibold">
                 <th className="p-3">Saved Algorithm / Code</th>
@@ -66,19 +66,19 @@ export default function HistorySection({ history, onLoadHistory, onDeleteHistory
                       </div>
                     </td>
                     <td className="p-3">
-                      <span className="text-[10px] bg-secondary/10 text-secondary border border-secondary/20 px-1.5 py-0.5 rounded font-mono uppercase">
+                      <span className="text-[11px] bg-secondary/10 text-secondary border border-secondary/20 px-1.5 py-0.5 rounded font-mono uppercase">
                         {item.language}
                       </span>
                     </td>
                     <td className="p-3 text-center">
-                      <span className={`px-2 py-0.5 rounded font-mono font-bold text-[10px] ${
+                      <span className={`px-2 py-0.5 rounded font-mono font-bold text-[11px] ${
                         isOptimal ? "bg-accent-green/10 text-accent-green border border-accent-green/20" : "bg-accent-red/10 text-accent-red border border-accent-red/20"
                       }`}>
                         {item.timeComplexity}
                       </span>
                     </td>
                     <td className="p-3 text-center">
-                      <span className="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded font-mono font-bold text-[10px]">
+                      <span className="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded font-mono font-bold text-[11px]">
                         {item.spaceComplexity}
                       </span>
                     </td>
@@ -90,7 +90,7 @@ export default function HistorySection({ history, onLoadHistory, onDeleteHistory
                     </td>
                     <td className="p-3 text-right">
                       <button
-                        className="btn-secondary text-[10px] py-1 px-2.5 mr-1 hover:border-primary/50"
+                        className="btn-secondary text-[11px] py-1 px-2.5 mr-1 hover:border-primary/50"
                         onClick={() => onLoadHistory(item)}
                       >
                         <Play size={10} />

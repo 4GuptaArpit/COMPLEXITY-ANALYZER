@@ -162,7 +162,7 @@ export default function EditorPanel({
 
           <textarea
             ref={textareaRef}
-            className="w-full h-full bg-transparent border-none text-gray-200 font-mono text-[13.5px] p-4 resize-none outline-none overflow-y-auto whitespace-pre"
+            className="w-full h-full bg-transparent border-none text-gray-200 font-mono text-[14.5px] p-4 resize-none outline-none overflow-y-auto whitespace-pre"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             onScroll={handleScroll}

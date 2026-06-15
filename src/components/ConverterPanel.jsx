@@ -29,22 +29,7 @@ export default function ConverterPanel({
     onConvert(targetLanguage);
   };
 
-  if (userTier === "anonymous") {
-    return (
-      <div className="flex flex-col items-center justify-center p-8 text-center flex-1 bg-black/10 rounded-lg border border-border-color mt-2.5">
-        <div className="bg-primary/10 text-primary p-3 rounded-full mb-3 flex">
-          <Lock size={28} />
-        </div>
-        <h3 className="text-base font-semibold mb-1.5 text-text-main">Unlock AI Code Converter</h3>
-        <p className="text-xs text-text-muted max-w-[300px] mb-4 leading-relaxed">
-          Sign up for a free account to instantly translate code between Python, JavaScript, C++, Java, and Rust.
-        </p>
-        <button className="btn-primary" onClick={onSignUp}>
-          Create Free Account
-        </button>
-      </div>
-    );
-  }
+
 
   return (
     <div className="flex flex-col mt-2.5 gap-4 flex-1">
@@ -129,10 +114,10 @@ export default function ConverterPanel({
 
           {/* Explanation Notes */}
           <div className="flex flex-col gap-2">
-            <h4 className="text-[11px] font-semibold text-text-muted uppercase tracking-wider flex items-center gap-1">
+            <h4 className="text-[12.5px] font-semibold text-text-muted uppercase tracking-wider flex items-center gap-1">
               <Sparkles size={12} className="text-primary" /> Key Translation Notes
             </h4>
-            <div className="text-text-muted text-xs leading-relaxed bg-white/2 border border-border-color rounded-lg p-3 whitespace-pre-wrap">
+            <div className="text-text-muted text-[13.5px] leading-relaxed bg-white/2 border border-border-color rounded-lg p-3 whitespace-pre-wrap">
               {explanation}
             </div>
           </div>

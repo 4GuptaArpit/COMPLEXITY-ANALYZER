@@ -5,7 +5,12 @@ export const mockAlgorithms = [
     language: "javascript",
     timeComplexity: "O(N²)",
     spaceComplexity: "O(1)",
-    explanation: "Bubble Sort is a simple sorting algorithm that repeatedly steps through the list, compares adjacent elements, and swaps them if they are in the wrong order. The pass through the list is repeated until the list is sorted. It is called Bubble Sort because smaller or larger elements 'bubble' to the top of the list.",
+    explanation: `Bubble Sort is a comparison-based sorting algorithm. It works by repeatedly iterating through the array, comparing adjacent elements, and swapping them if they are in the incorrect relative order. This process is repeated until no swaps are needed on a full pass, indicating that the array is fully sorted.
+
+### Detailed Complexity Analysis:
+1. **Worst-Case Time Complexity (O(N²)):** Occurs when the input array is sorted in reverse order. The algorithm must perform N - 1 passes, resulting in (N - 1) + (N - 2) + ... + 1 = N(N-1)/2 comparison and swap operations.
+2. **Best-Case Time Complexity (O(N)):** Occurs if the array is already sorted. By adding an optimized early-termination flag checking if any swap occurred, the algorithm can finish in a single pass of N - 1 comparisons.
+3. **Space Complexity (O(1)):** It is an in-place sorting algorithm, requiring only a constant amount of auxiliary memory for index tracking and swapping.`,
     code: `function bubbleSort(arr) {
   let n = arr.length;
   for (let i = 0; i < n - 1; i++) {
@@ -96,7 +101,12 @@ function merge(left, right) {
     language: "javascript",
     timeComplexity: "O(log N)",
     spaceComplexity: "O(1)",
-    explanation: "Binary Search is an efficient algorithm for finding an item from a sorted list of items. It works by repeatedly dividing in half the portion of the list that could contain the item, until you've narrowed down the possible locations to just one.",
+    explanation: `Binary Search is a highly efficient search algorithm that finds the position of a target value within a sorted array. It operates on a divide-and-conquer strategy, repeatedly comparing the target to the middle element of the active range.
+
+### Detailed Complexity Analysis:
+1. **Worst-Case Time Complexity (O(log N)):** With each iteration, the algorithm halves the remaining search range. The number of steps required to reduce a list of size N down to 1 is log2(N) queries.
+2. **Best-Case Time Complexity (O(1)):** Occurs if the middle element of the initial array happens to match the target value on the very first comparison.
+3. **Space Complexity (O(1)):** An iterative implementation of binary search requires a constant amount of memory to maintain index boundaries (left, right, mid).`,
     code: `function binarySearch(arr, target) {
   let left = 0;
   let right = arr.length - 1;
@@ -175,7 +185,11 @@ function binarySearchRecursive(arr, target, left = 0, right = arr.length - 1) {
     language: "javascript",
     timeComplexity: "O(2^N)",
     spaceComplexity: "O(N)",
-    explanation: "Calculates the N-th Fibonacci number using direct recursion. The algorithm is highly inefficient because it computes the same subproblems repeatedly, leading to exponential time complexity.",
+    explanation: `Calculates the N-th Fibonacci number using direct recurrence: F(N) = F(N-1) + F(N-2). The execution flow forms a binary recursion tree where sub-problems overlap heavily (e.g. F(N-2) is calculated multiple times).
+
+### Detailed Complexity Analysis:
+1. **Worst-Case Time Complexity (O(2^N)):** The recursion tree branches out twice at each depth level. More precisely, the number of operations scales proportionally to the Golden Ratio (1.618)^N, which is exponential.
+2. **Space Complexity (O(N)):** Requires call stack memory frames proportional to the maximum recursion depth, which uses N active stack frames.`,
     code: `function fibonacci(n) {
   if (n <= 1) {
     return n;
@@ -237,7 +251,11 @@ function binarySearchRecursive(arr, target, left = 0, right = arr.length - 1) {
     language: "javascript",
     timeComplexity: "O(N²)",
     spaceComplexity: "O(1)",
-    explanation: "Given an array of integers and a target value, finds the indices of the two numbers that add up to the target. This brute force solution checks every possible pair, leading to quadratic time complexity.",
+    explanation: `Two Sum finds the indices of the two elements in an array that add up to a specified target. The brute-force implementation checks every potential pair combination using nested loops.
+
+### Detailed Complexity Analysis:
+1. **Worst-Case Time Complexity (O(N²)):** The outer loop runs N times, and the inner loop runs N - i - 1 times. The total number of pairs checked is N(N-1)/2, which is quadratic.
+2. **Space Complexity (O(1)):** Operates directly on the input array in-place, using only a couple of indices (i and j), requiring no extra auxiliary data structures.`,
     code: `function twoSum(nums, target) {
   let n = nums.length;
   for (let i = 0; i < n; i++) {

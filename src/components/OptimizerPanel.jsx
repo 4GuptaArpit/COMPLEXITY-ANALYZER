@@ -128,12 +128,12 @@ export default function OptimizerPanel({
       </div>
 
       {/* Side by Side Diff */}
-      <h4 className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">
+      <h4 className="text-[12.5px] font-semibold text-text-muted uppercase tracking-wider mb-2">
         <Sparkles size={12} className="text-primary inline mr-1" /> Side-by-Side Comparison
       </h4>
-      <div className="diff-container grid grid-cols-2 gap-3 font-mono text-[11px] rounded-lg overflow-hidden mb-3">
+      <div className="diff-container grid grid-cols-2 gap-3 font-mono text-[12px] rounded-lg overflow-hidden mb-3">
         <div className="flex flex-col">
-          <div className="diff-header-left p-1.5 px-2.5 text-[10px] font-semibold border-b border-l-2">
+          <div className="diff-header-left p-1.5 px-2.5 text-[11px] font-semibold border-b border-l-2">
             <span>Your Code ({timeComplexity || "O(N²)"})</span>
           </div>
           <div className="diff-body-left p-2.5 whitespace-pre max-h-[180px] overflow-y-auto">
@@ -142,7 +142,7 @@ export default function OptimizerPanel({
         </div>
 
         <div className="flex flex-col">
-          <div className="diff-header-right p-1.5 px-2.5 text-[10px] font-semibold border-b border-l-2">
+          <div className="diff-header-right p-1.5 px-2.5 text-[11px] font-semibold border-b border-l-2">
             <span>Optimized Code ({optimizedComplexity})</span>
           </div>
           <div className="diff-body-right p-2.5 whitespace-pre max-h-[180px] overflow-y-auto">
@@ -225,10 +225,10 @@ export default function OptimizerPanel({
       </div>
 
       {/* Explanation description */}
-      <h4 className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">
+      <h4 className="text-[12.5px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">
         Why is this solution better?
       </h4>
-      <div className="text-text-muted text-xs leading-relaxed bg-white/2 border border-border-color rounded-lg p-3 whitespace-pre-wrap">
+      <div className="text-text-muted text-[13.5px] leading-relaxed bg-white/2 border border-border-color rounded-lg p-3 whitespace-pre-wrap">
         {explanation || "Your code is already running at optimal complexity! No further improvements were detected."}
       </div>
     </div>

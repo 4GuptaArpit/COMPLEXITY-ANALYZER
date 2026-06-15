@@ -179,7 +179,11 @@ export default function App() {
     const codeLower = code.toLowerCase();
     let time = "O(1)";
     let space = "O(1)";
-    let explanation = "This algorithm has constant time complexity because it runs in a single execution step without loops or recursion.";
+    let explanation = `This algorithm has constant time complexity O(1) because it runs in a single execution step without loop iterations or recursive branching.
+
+### Details:
+- **Operations:** Runs in constant CPU ticks.
+- **Scaling:** Input growth (N) has zero impact on runtime performance.`;
     let optCode = code;
     let optExpl = "Your code is already running at optimal complexity! No further improvements were detected.";
     let heatmap = { 1: "low", 2: "low" };
@@ -191,20 +195,32 @@ export default function App() {
       if (secondIndex !== -1 || codeLower.includes("nested") || codeLower.split("for").length > 2) {
         time = "O(N²)";
         space = "O(1)";
-        explanation = "Detected nested loops. For an input of size N, the outer loop runs N times, and for each iteration, the inner loop runs up to N times, resulting in N * N = N² operations.";
+        explanation = `Detected nested loops in your algorithm. For an input of size N, the outer loop iterates N times, and for each iteration, the inner loop iterates up to N times.
+
+### Details:
+- **Operations:** Scales quadratically N * N = N² operations.
+- **Bottleneck:** Highly inefficient for inputs exceeding N = 10,000.`;
         optCode = `// Optimized alternative (simulated)\nfunction optimizedAlgo() {\n  // Using a Hash Map to reduce search time to O(N)\n  const map = new Map();\n  // ...\n}`;
         optExpl = "We can optimize nested loops (O(N²)) by using a Hash Map to store previously visited elements. This allows us to perform lookups in O(1) time instead of nesting loops, reducing total runtime to O(N).";
         heatmap = { 1: "low", 2: "medium", 3: "high", 4: "high" };
       } else {
         time = "O(N)";
         space = "O(1)";
-        explanation = "Detected a single loop that iterates over the input elements. The execution time grows linearly with the size of the input (N).";
+        explanation = `Detected a single loop that iterates over the input elements. The execution time grows linearly with the size of the input.
+
+### Details:
+- **Operations:** Scales linearly O(N) operations.
+- **Scaling:** Doubling the input size roughly doubles the execution time.`;
         heatmap = { 1: "low", 2: "high", 3: "low" };
       }
     } else if (codeLower.includes("recurse") || codeLower.includes("fib") || codeLower.split("function").length > 2) {
       time = "O(2^N)";
       space = "O(N)";
-      explanation = "Detected multiple recursive calls. The algorithm branches out twice for each recursive depth level, leading to exponential O(2^N) time complexity and O(N) call stack space complexity.";
+      explanation = `Detected multiple recursive branches (like Fibonacci recursion). The algorithm splits execution sub-problems repeatedly without memoization cache lookups.
+
+### Details:
+- **Operations:** Scales exponentially O(2^N) operations.
+- **Stack Space:** Growth uses O(N) depth in the execution call stack.`;
       optCode = `// Optimized alternative using memoization\nconst memo = {};\nfunction optimizedAlgo(n) {\n  if (n in memo) return memo[n];\n  // ...\n}`;
       optExpl = "By caching recursive sub-calls in a Memoization lookup table, we avoid redundant calculations, improving performance from O(2^N) down to O(N) linear time.";
       heatmap = { 1: "low", 2: "medium", 3: "high" };
@@ -625,40 +641,52 @@ export default function App() {
           <div className="glass-panel flex flex-col min-h-[540px]">
             <div className="flex border-b border-border-color bg-white/1 rounded-t-xl">
               <button
-                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-xs font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main ${
+                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-[13px] font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main relative ${
                   activeTab === "complexity" ? "text-primary border-primary font-semibold bg-primary/3" : ""
                 }`}
                 onClick={() => setActiveTab("complexity")}
               >
                 <BarChart2 size={14} />
                 <span>Complexity</span>
+                <span className="absolute top-1 right-2 text-[7.5px] font-bold tracking-wider uppercase opacity-65 text-text-dark">
+                  Free
+                </span>
               </button>
               <button
-                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-xs font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main ${
-                  activeTab === "optimizer" ? "text-primary border-primary font-semibold bg-primary/3" : ""
-                }`}
-                onClick={() => setActiveTab("optimizer")}
-              >
-                <Zap size={14} />
-                <span>AI Optimizer</span>
-              </button>
-              <button
-                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-xs font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main ${
-                  activeTab === "simulator" ? "text-primary border-primary font-semibold bg-primary/3" : ""
-                }`}
-                onClick={() => setActiveTab("simulator")}
-              >
-                <Play size={14} />
-                <span>Simulator</span>
-              </button>
-              <button
-                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-xs font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main ${
+                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-[13px] font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main relative ${
                   activeTab === "converter" ? "text-primary border-primary font-semibold bg-primary/3" : ""
                 }`}
                 onClick={() => setActiveTab("converter")}
               >
                 <Languages size={14} />
                 <span>Converter</span>
+                <span className="absolute top-1 right-2 text-[7.5px] font-bold tracking-wider uppercase opacity-65 text-text-dark">
+                  Free
+                </span>
+              </button>
+              <button
+                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-[13px] font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main relative ${
+                  activeTab === "optimizer" ? "text-primary border-primary font-semibold bg-primary/3" : ""
+                }`}
+                onClick={() => setActiveTab("optimizer")}
+              >
+                <Zap size={14} />
+                <span>AI Optimizer</span>
+                <span className="absolute top-1 right-2 text-[7.5px] font-bold tracking-wider uppercase opacity-75 text-primary">
+                  Account
+                </span>
+              </button>
+              <button
+                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-[13px] font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main relative ${
+                  activeTab === "simulator" ? "text-primary border-primary font-semibold bg-primary/3" : ""
+                }`}
+                onClick={() => setActiveTab("simulator")}
+              >
+                <Play size={14} />
+                <span>Simulator</span>
+                <span className="absolute top-1 right-2 text-[7.5px] font-bold tracking-wider uppercase opacity-85 text-accent-purple dark:text-accent-purple/90">
+                  Pro
+                </span>
               </button>
             </div>
 
@@ -693,7 +721,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="text-text-muted text-xs leading-relaxed" style={{ whiteSpace: "pre-wrap" }}>
+                    <div className="text-text-muted text-[13.5px] leading-relaxed" style={{ whiteSpace: "pre-wrap" }}>
                       {analysisResult.explanation || "No analysis generated yet. Click 'Analyze Complexity'."}
                     </div>
 
