@@ -117,3 +117,75 @@ Double check: Return ONLY a valid JSON object.
     throw error;
   }
 };
+
+export const convertCodeWithGemini = async (code, sourceLanguage, targetLanguage) => {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error("No Gemini API Key found. Please add your key in Settings.");
+  }
+
+  const prompt = `
+You are an expert polyglot software engineering assistant.
+Convert the following code from ${sourceLanguage} to ${targetLanguage}.
+Optimize the translated code to be idiomatic in the target language.
+
+Source Code:
+\`\`\`${sourceLanguage}
+${code}
+\`\`\`
+
+You must respond with a SINGLE JSON object. Do not include markdown code block syntax (like \`\`\`json) in your response, just return the raw JSON text. The JSON object must contain the following keys exactly:
+{
+  "convertedCode": "The full source code of the translated version. Preserve all comments and structure, translating them correctly.",
+  "explanation": "A breakdown of the differences between the source and target languages for this specific code, including key syntax changes, standard library functions used, and execution model updates (e.g. how types are handled or how loops map)."
+}
+
+Double check: Return ONLY a valid JSON object.
+`;
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            responseMimeType: "application/json",
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.error?.message || `HTTP ${response.status} Error`;
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!responseText) {
+      throw new Error("Empty response received from Gemini API.");
+    }
+
+    const parsedJson = JSON.parse(responseText.trim());
+    return parsedJson;
+  } catch (error) {
+    console.error("Gemini API Error during translation:", error);
+    throw error;
+  }
+};
+

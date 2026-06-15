@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BarChart2, Zap, Play, Coins, User, LogIn, Award, Database, ShieldAlert, Sun, Moon } from "lucide-react";
+import { BarChart2, Zap, Play, Coins, User, LogIn, Award, Database, ShieldAlert, Sun, Moon, Languages } from "lucide-react";
 import Header from "./components/Header";
 import AdSidebar from "./components/AdSidebar";
 import EditorPanel from "./components/EditorPanel";
@@ -7,8 +7,10 @@ import ChartViewer from "./components/ChartViewer";
 import OptimizerPanel from "./components/OptimizerPanel";
 import SimulatorPanel from "./components/SimulatorPanel";
 import HistorySection from "./components/HistorySection";
+import ConverterPanel from "./components/ConverterPanel";
 import { mockAlgorithms } from "./mockData";
-import { hasApiKey, analyzeCodeWithGemini } from "./geminiService";
+import { mockTranslations } from "./mockConverterData";
+import { hasApiKey, analyzeCodeWithGemini, convertCodeWithGemini } from "./geminiService";
 
 export default function App() {
   const [theme, setTheme] = useState(() => {
@@ -79,6 +81,11 @@ export default function App() {
     quiz: []
   });
 
+  const [convertedCode, setConvertedCode] = useState("");
+  const [conversionExplanation, setConversionExplanation] = useState("");
+  const [isConverting, setIsConverting] = useState(false);
+
+
   useEffect(() => {
     document.body.className = theme === "light" ? "light-theme" : "";
     localStorage.setItem("BIGO_THEME", theme);
@@ -135,6 +142,12 @@ export default function App() {
       setDetectedLanguage(detected);
     }
   }, [code, selectedLanguage]);
+
+  useEffect(() => {
+    setConvertedCode("");
+    setConversionExplanation("");
+  }, [code, selectedLanguage, selectedTemplate]);
+
 
   const detectLanguage = (sourceCode) => {
     if (!sourceCode) return "javascript";
@@ -309,6 +322,57 @@ export default function App() {
       }, 1200);
     }
   };
+
+  const handleConvert = async (targetLang) => {
+    const sourceLang = selectedLanguage === "auto" ? detectedLanguage : selectedLanguage;
+    
+    if (sourceLang === targetLang) {
+      alert(`The code is already in ${targetLang.toUpperCase()}! Please select a different target language.`);
+      return;
+    }
+
+    setIsConverting(true);
+    setConvertedCode("");
+    setConversionExplanation("");
+
+    if (hasApiKey()) {
+      try {
+        const res = await convertCodeWithGemini(code, sourceLang, targetLang);
+        setConvertedCode(res.convertedCode);
+        setConversionExplanation(res.explanation);
+      } catch (err) {
+        alert("Failed to convert with Gemini: " + err.message + "\n\nUsing mock local converter fallback.");
+        loadMockTranslation(sourceLang, targetLang);
+      } finally {
+        setIsConverting(false);
+      }
+    } else {
+      setTimeout(() => {
+        loadMockTranslation(sourceLang, targetLang);
+        setIsConverting(false);
+      }, 1200);
+    }
+  };
+
+  const loadMockTranslation = (sourceLang, targetLang) => {
+    // If the template is custom, prompt user to add their key
+    if (selectedTemplate === "custom") {
+      setConvertedCode(`// Gemini API Key required for custom code conversion.\n// To enable live AI conversion of your custom algorithms, please go to Settings (gear icon at top-right) and save a valid Gemini API Key.`);
+      setConversionExplanation("Custom code translations require a Gemini API Key to run content mapping dynamically. Pre-loaded template translations (e.g. Bubble Sort) work out of the box without any key.");
+      return;
+    }
+
+    // Load from mockTranslations data
+    const algoTranslations = mockTranslations[selectedTemplate];
+    if (algoTranslations && algoTranslations[targetLang]) {
+      setConvertedCode(algoTranslations[targetLang].convertedCode);
+      setConversionExplanation(algoTranslations[targetLang].explanation);
+    } else {
+      setConvertedCode(`// Mock Translation fallback for template: ${selectedTemplate} to ${targetLang}\n// To perform this conversion, please connect a Gemini API Key in the Settings.`);
+      setConversionExplanation("This template does not have a pre-defined offline mapping for the selected target language. Save a Gemini API Key in the settings for dynamic translation.");
+    }
+  };
+
 
   const handleSimulateTrigger = () => {
     if (userTier !== "premium") {
@@ -587,6 +651,15 @@ export default function App() {
                 <Play size={14} />
                 <span>Simulator</span>
               </button>
+              <button
+                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-xs font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main ${
+                  activeTab === "converter" ? "text-primary border-primary font-semibold bg-primary/3" : ""
+                }`}
+                onClick={() => setActiveTab("converter")}
+              >
+                <Languages size={14} />
+                <span>Converter</span>
+              </button>
             </div>
 
             {isAnalyzing ? (
@@ -654,6 +727,21 @@ export default function App() {
                     tokens={tokens}
                     setTokens={setTokens}
                     isCustomCode={selectedTemplate === "custom"}
+                  />
+                )}
+
+                {activeTab === "converter" && (
+                  <ConverterPanel
+                    userTier={userTier}
+                    originalCode={code}
+                    convertedCode={convertedCode}
+                    explanation={conversionExplanation}
+                    isConverting={isConverting}
+                    onConvert={handleConvert}
+                    onSignUp={() => {
+                      setLoginStep("input");
+                      setShowLogin(true);
+                    }}
                   />
                 )}
               </div>
