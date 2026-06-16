@@ -728,44 +728,38 @@ export default function App() {
   };
 
   return (
-    <div className={`grid min-h-screen gap-4 p-4 max-w-[1550px] mx-auto max-lg:grid-cols-1 ${
-      isSidebarOpen ? "grid-cols-[200px_1fr]" : "grid-cols-1"
-    }`}>
-      {/* Left Sidebar Ad + History */}
-      {isSidebarOpen && (
-        <AdSidebar
-          history={history}
-          onLoadHistory={handleLoadHistory}
-          userTier={userTier}
-          onUpgrade={() => setShowCheckout(true)}
-        />
-      )}
+    <div className="flex flex-col min-h-screen gap-4 p-4 max-w-[1550px] mx-auto w-full">
+      <Header
+        userTier={userTier}
+        setUserTier={handleDemoSetTier}
+        tokens={tokens}
+        onOpenCheckout={() => setShowCheckout(true)}
+        theme={theme}
+        setTheme={setTheme}
+        userContact={userContact}
+        onOpenLogin={() => {
+          setLoginStep("input");
+          setShowLogin(true);
+        }}
+        onLogout={handleLogout}
+        isSidebarOpen={isSidebarOpen}
+        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+        history={history}
+        onLoadHistory={handleLoadHistory}
+        onDeleteHistory={handleDeleteHistory}
+        onChangePassword={handleChangePassword}
+        usersDb={usersDb}
+      />
 
-      {/* Main App Workspace */}
-      <main className="flex flex-col gap-4 overflow-hidden">
-        <Header
-          userTier={userTier}
-          setUserTier={handleDemoSetTier}
-          tokens={tokens}
-          onOpenCheckout={() => setShowCheckout(true)}
-          theme={theme}
-          setTheme={setTheme}
-          userContact={userContact}
-          onOpenLogin={() => {
-            setLoginStep("input");
-            setShowLogin(true);
-          }}
-          onLogout={handleLogout}
-          isSidebarOpen={isSidebarOpen}
-          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-          history={history}
-          onLoadHistory={handleLoadHistory}
-          onDeleteHistory={handleDeleteHistory}
-          onChangePassword={handleChangePassword}
-          usersDb={usersDb}
-        />
+      {/* Main Split Layout: Editor/Tab/Comparison on Left, Ads Sidebar on Right */}
+      <div className={`grid gap-4 items-start ${
+        isSidebarOpen ? "grid-cols-[1fr_200px] max-xl:grid-cols-1" : "grid-cols-1"
+      }`}>
+        {/* Left Column: Sandbox tools + Feature Matrix */}
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1">
 
-        <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1">
+
           {/* Editor Sandbox Panel */}
           <EditorPanel
             code={code}
@@ -820,8 +814,8 @@ export default function App() {
               >
                 <Zap size={14} />
                 <span>AI Optimizer</span>
-                <span className="absolute top-1 right-2 text-[7.5px] font-bold tracking-wider uppercase opacity-75 text-primary">
-                  Account
+                <span className="absolute top-1 right-2 text-[7.5px] font-bold tracking-wider uppercase opacity-75 text-primary animate-pulse">
+                  Sign-In
                 </span>
               </button>
               <button
@@ -874,7 +868,7 @@ export default function App() {
                     </div>
 
                     <ChartViewer timeComplexity={analysisResult.timeComplexity} />
-                    <FeatureComparison userTier={userTier} />
+                    {/* Feature comparison matrix moved to bottom of page */}
                   </div>
 
                 )}
@@ -925,7 +919,19 @@ export default function App() {
               </div>
             )}
           </div>
+
         </div>
+
+        {/* Feature Comparison Matrix - aligned to left column width */}
+        <FeatureComparison userTier={userTier} />
+      </div>
+
+      {/* Right Ad Sidebar */}
+      {isSidebarOpen && (
+        <AdSidebar onUpgrade={() => setShowCheckout(true)} />
+      )}
+    </div>
+
 
 
         {/* Collapsible Admin User Management Drawer */}
@@ -1085,7 +1091,7 @@ export default function App() {
         )}
 
         <Footer onFeedbackSubmitted={refreshFeedback} />
-      </main>
+
 
 
       {/* OTP Authentication Modal */}

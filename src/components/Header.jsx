@@ -25,7 +25,8 @@ export default function Header({
   usersDb = []
 }) {
   const [showSettings, setShowSettings] = useState(false);
-  const [settingsTab, setSettingsTab] = useState("profile");
+  const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
+  const [settingsTab, setSettingsTab] = useState("account");
   const [currPassword, setCurrPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -155,7 +156,7 @@ export default function Header({
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Toggle Theme */}
+        {/* 1. Theme Change */}
         <button
           className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main p-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15 transition-all duration-200"
           onClick={toggleTheme}
@@ -164,7 +165,7 @@ export default function Header({
           {theme === "dark" ? <Sun size={15} className="text-accent-yellow" /> : <Moon size={15} className="text-primary" />}
         </button>
  
-        {/* Ads Toggle Button (Only for Paid Premium users who start collapsed by default) */}
+        {/* 2. Show Ad */}
         {userTier === "premium" && (
           <button
             className={`bg-white/5 dark:bg-black/3 border text-text-main p-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15 transition-all duration-200 flex items-center gap-1.5 ${
@@ -178,61 +179,7 @@ export default function Header({
           </button>
         )}
 
-        {/* User Session Profile Section */}
-        {userContact ? (
-          <div className="flex items-center gap-2">
-            <div className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-default">
-              <User size={13} className="text-primary" />
-              <span className="max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap">
-                {userContact}
-              </span>
-            </div>
-            <button
-              className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main p-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15 transition-all duration-200"
-              onClick={onLogout}
-              title="Log Out"
-            >
-              <LogOut size={14} className="text-accent-red" />
-            </button>
-          </div>
-        ) : (
-          <button
-            className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium cursor-pointer flex items-center gap-1.5 hover:bg-gray-500/15 transition-all duration-200"
-            onClick={onOpenLogin}
-          >
-            <LogIn size={14} />
-            <span>Login / Sign Up</span>
-          </button>
-        )}
-
-        {/* Token Balance for Premium User */}
-        {userTier === "premium" && (
-          <div className="flex items-center gap-1.5 bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow text-xs font-semibold px-2.5 py-1.5 rounded-full">
-            <Coins size={14} />
-            <span>{tokens} Tokens</span>
-          </div>
-        )}
-
-        {/* Upgrade / Token Actions */}
-        {userTier !== "premium" ? (
-          <button
-            className="bg-gradient-to-r from-primary to-secondary border-none text-white px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all duration-200 hover:scale-[1.01] hover:brightness-110 shadow-md shadow-primary/35"
-            onClick={onOpenCheckout}
-          >
-            <CreditCard size={14} />
-            <span>Upgrade (₹40)</span>
-          </button>
-        ) : (
-          <button
-            className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium cursor-pointer flex items-center gap-1.5 hover:bg-gray-500/15 transition-all duration-200"
-            onClick={onOpenCheckout}
-          >
-            <Coins size={14} />
-            <span>Buy Tokens</span>
-          </button>
-        )}
-
-        {/* Developer Demo Toggles */}
+        {/* 3. Demo Toggles */}
         <div className="bg-white/4 dark:bg-black/3 border border-border-color rounded-full flex p-0.5 opacity-60">
           <button
             className={`cursor-pointer text-[10px] font-semibold px-2 py-1 rounded-full transition-all duration-200 ${
@@ -263,27 +210,151 @@ export default function Header({
           </button>
         </div>
 
-        {/* Settings gear (only visible when logged in) */}
+        {/* 4. Tokens Available */}
+        {userTier === "premium" && (
+          <div className="flex items-center gap-1.5 bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow text-xs font-semibold px-2.5 py-1.5 rounded-full">
+            <Coins size={14} />
+            <span>{tokens} Tokens</span>
+          </div>
+        )}
+
+        {/* 5. Upgrade or Buy Tokens */}
+        {userTier !== "premium" ? (
+          <button
+            className="bg-gradient-to-r from-primary to-secondary border-none text-white px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all duration-200 hover:scale-[1.01] hover:brightness-110 shadow-md shadow-primary/35"
+            onClick={onOpenCheckout}
+          >
+            <CreditCard size={14} />
+            <span>Upgrade (₹40)</span>
+          </button>
+        ) : (
+          <button
+            className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium cursor-pointer flex items-center gap-1.5 hover:bg-gray-500/15 transition-all duration-200"
+            onClick={onOpenCheckout}
+          >
+            <Coins size={14} />
+            <span>Buy Tokens</span>
+          </button>
+        )}
+
+        {/* 6. User Login Number / Login Button */}
+        {userContact ? (
+          <div className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-default">
+            <User size={13} className="text-primary" />
+            <span className="max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap">
+              {userContact}
+            </span>
+          </div>
+        ) : (
+          <button
+            className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium cursor-pointer flex items-center gap-1.5 hover:bg-gray-500/15 transition-all duration-200"
+            onClick={onOpenLogin}
+          >
+            <LogIn size={14} />
+            <span>Login / Sign Up</span>
+          </button>
+        )}
+
+        {/* 7. Settings Button with Dropdown */}
+        {userContact && (
+          <div className="relative">
+            <button
+              className={`bg-white/5 dark:bg-black/3 border text-text-main p-2 px-3 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15 transition-all duration-200 flex items-center gap-1.5 ${
+                showSettingsDropdown ? "border-primary text-primary bg-primary/5" : "border-border-color"
+              }`}
+              onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
+              title="Account Settings"
+            >
+              <Settings size={14} className={showSettingsDropdown ? "animate-spin-slow" : ""} />
+              <span>Settings</span>
+            </button>
+            
+            {showSettingsDropdown && (
+              <>
+                <div 
+                  className="fixed inset-0 z-[998] cursor-default bg-transparent" 
+                  onClick={() => setShowSettingsDropdown(false)} 
+                />
+                <div className="absolute right-0 mt-2 w-48 rounded-lg border border-border-color bg-bg-main shadow-lg z-[999] py-1 text-left glass-panel">
+                  <div className="px-3.5 py-1 text-[9px] font-bold text-text-dark uppercase tracking-wider border-b border-border-color/40 mb-1">
+                    User Settings
+                  </div>
+                  <button
+                    className="w-full text-left bg-transparent border-none px-3.5 py-2 text-xs text-text-muted hover:text-text-main hover:bg-white/5 cursor-pointer flex items-center gap-2 transition-colors"
+                    onClick={() => {
+                      setSettingsTab("account");
+                      setShowSettings(true);
+                      setShowSettingsDropdown(false);
+                    }}
+                  >
+                    <User size={13} className="text-primary" />
+                    <span>Account</span>
+                  </button>
+                  <button
+                    className="w-full text-left bg-transparent border-none px-3.5 py-2 text-xs text-text-muted hover:text-text-main hover:bg-white/5 cursor-pointer flex items-center gap-2 transition-colors"
+                    onClick={() => {
+                      setSettingsTab("password");
+                      setShowSettings(true);
+                      setShowSettingsDropdown(false);
+                    }}
+                  >
+                    <Key size={13} className="text-secondary" />
+                    <span>Change Password</span>
+                  </button>
+                  <button
+                    className="w-full text-left bg-transparent border-none px-3.5 py-2 text-xs text-text-muted hover:text-text-main hover:bg-white/5 cursor-pointer flex items-center gap-2 transition-colors"
+                    onClick={() => {
+                      setSettingsTab("history");
+                      setShowSettings(true);
+                      setShowSettingsDropdown(false);
+                    }}
+                  >
+                    <Clock size={13} className="text-accent-yellow" />
+                    <span>History</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* 8. Logout Button */}
         {userContact && (
           <button
             className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main p-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15 transition-all duration-200"
-            onClick={() => setShowSettings(true)}
-            title="Account Settings"
+            onClick={onLogout}
+            title="Log Out"
           >
-            <Settings size={15} />
+            <LogOut size={14} className="text-accent-red" />
           </button>
         )}
       </div>
 
-      {/* Settings Modal */}
+      {/* Settings Modal (Positioned with gap from top) */}
       {showSettings && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-start justify-center p-4 pt-[12vh]">
           <div className="bg-bg-main border border-border-color rounded-xl w-full max-w-[620px] shadow-glass-shadow overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="p-3.5 px-4 border-b border-border-color flex justify-between items-center bg-white/2">
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-text-main">
-                <Settings size={18} className="text-primary animate-spin-slow" />
-                <span>Account Settings & Dashboard</span>
+            {/* Modal Header (Changes dynamically per tab/screen) */}
+            <div className="p-4 px-5 border-b border-border-color flex justify-between items-center bg-white/2">
+              <h3 className="flex items-center gap-2.5 text-sm font-bold text-text-main">
+                {settingsTab === "account" && (
+                  <>
+                    <User size={18} className="text-primary animate-pulse" />
+                    <span>Account Details</span>
+                  </>
+                )}
+                {settingsTab === "password" && (
+                  <>
+                    <Key size={18} className="text-secondary" />
+                    <span>Change Password</span>
+                  </>
+                )}
+                {settingsTab === "history" && (
+                  <>
+                    <Clock size={18} className="text-accent-yellow" />
+                    <span>Code History Logs</span>
+                  </>
+                )}
               </h3>
               <button
                 className="bg-transparent border-none text-text-muted cursor-pointer hover:text-text-main transition-colors text-lg"
@@ -293,44 +364,14 @@ export default function Header({
               </button>
             </div>
 
-            {/* Modal Tabs Switcher */}
-            <div className="flex border-b border-border-color bg-white/1">
-              <button
-                className={`flex-1 py-3 text-xs font-semibold border-b-2 bg-transparent cursor-pointer transition-all ${
-                  settingsTab === "profile" 
-                    ? "text-primary border-primary bg-primary/5" 
-                    : "text-text-muted border-transparent hover:text-text-main"
-                }`}
-                onClick={() => setSettingsTab("profile")}
-              >
-                <div className="flex items-center justify-center gap-1.5">
-                  <User size={13} />
-                  <span>Profile & Security</span>
-                </div>
-              </button>
-              <button
-                className={`flex-1 py-3 text-xs font-semibold border-b-2 bg-transparent cursor-pointer transition-all ${
-                  settingsTab === "history" 
-                    ? "text-primary border-primary bg-primary/5" 
-                    : "text-text-muted border-transparent hover:text-text-main"
-                }`}
-                onClick={() => setSettingsTab("history")}
-              >
-                <div className="flex items-center justify-center gap-1.5">
-                  <Clock size={13} />
-                  <span>Code History Logs ({history.length})</span>
-                </div>
-              </button>
-            </div>
-
             {/* Modal Body */}
             <div className="p-5 overflow-y-auto flex-1 text-xs">
-              {settingsTab === "profile" ? (
+              {settingsTab === "account" && (
                 <div className="flex flex-col gap-5">
                   {/* Account details */}
                   <div className="bg-white/3 border border-border-color rounded-lg p-4">
                     <h4 className="font-bold text-text-main mb-2.5 uppercase tracking-wider text-[10px] text-primary">Account Details</h4>
-                    <div className="grid grid-cols-2 gap-3 text-text-muted">
+                    <div className="grid grid-cols-2 gap-3 text-text-muted text-left">
                       <div>
                         <span className="text-[10px] text-text-dark block uppercase">Email / Mobile</span>
                         <strong className="text-text-main text-[13px]">{userContact}</strong>
@@ -358,62 +399,10 @@ export default function Header({
                     </div>
                   </div>
 
-                  {/* Change Password */}
-                  <form onSubmit={handleUpdatePassword} className="bg-white/3 border border-border-color rounded-lg p-4 flex flex-col gap-3">
-                    <h4 className="font-bold text-text-main uppercase tracking-wider text-[10px] text-primary flex items-center gap-1.5">
-                      <Key size={13} />
-                      <span>Change Account Password</span>
-                    </h4>
-
-                    {pwdStatus.text && (
-                      <div className={`p-2 rounded font-medium text-[11px] ${
-                        pwdStatus.type === "success" ? "bg-accent-green/10 text-accent-green border border-accent-green/20" : "bg-accent-red/10 text-accent-red border border-accent-red/20"
-                      }`}>
-                        {pwdStatus.text}
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] text-text-dark uppercase">Current Password</label>
-                        <input
-                          type="password"
-                          className="bg-black/25 border border-border-color rounded p-1.5 text-text-main outline-none focus:border-primary text-xs"
-                          value={currPassword}
-                          onChange={(e) => setCurrPassword(e.target.value)}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] text-text-dark uppercase">New Password</label>
-                        <input
-                          type="password"
-                          className="bg-black/25 border border-border-color rounded p-1.5 text-text-main outline-none focus:border-primary text-xs"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] text-text-dark uppercase">Confirm Password</label>
-                        <input
-                          type="password"
-                          className="bg-black/25 border border-border-color rounded p-1.5 text-text-main outline-none focus:border-primary text-xs"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end mt-1.5">
-                      <button type="submit" className="bg-gradient-to-r from-primary to-secondary text-white p-1.5 px-3 rounded text-[11px] font-semibold cursor-pointer border-none shadow-md shadow-primary/20">
-                        Update Password
-                      </button>
-                    </div>
-                  </form>
-
                   {/* Transaction Receipts (only for premium users) */}
                   {userTier === "premium" && (
                     <div className="bg-white/3 border border-border-color rounded-lg p-4">
-                      <h4 className="font-bold text-text-main mb-2 uppercase tracking-wider text-[10px] text-primary">Simulated Transaction Receipts</h4>
+                      <h4 className="font-bold text-text-main mb-2 uppercase tracking-wider text-[10px] text-primary text-left">Simulated Transaction Receipts</h4>
                       <div className="overflow-hidden border border-border-color rounded-lg">
                         <table className="w-full text-[11px] border-collapse text-left">
                           <thead>
@@ -446,7 +435,62 @@ export default function Header({
                     </div>
                   )}
                 </div>
-              ) : (
+              )}
+
+              {settingsTab === "password" && (
+                <form onSubmit={handleUpdatePassword} className="bg-white/3 border border-border-color rounded-lg p-4 flex flex-col gap-3 text-left">
+                  <h4 className="font-bold text-text-main uppercase tracking-wider text-[10px] text-primary flex items-center gap-1.5">
+                    <Key size={13} />
+                    <span>Change Account Password</span>
+                  </h4>
+
+                  {pwdStatus.text && (
+                    <div className={`p-2 rounded font-medium text-[11px] ${
+                      pwdStatus.type === "success" ? "bg-accent-green/10 text-accent-green border border-accent-green/20" : "bg-accent-red/10 text-accent-red border border-accent-red/20"
+                    }`}>
+                      {pwdStatus.text}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-3 gap-3 max-sm:grid-cols-1">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] text-text-dark uppercase">Current Password</label>
+                      <input
+                        type="password"
+                        className="bg-black/25 border border-border-color rounded p-1.5 text-text-main outline-none focus:border-primary text-xs"
+                        value={currPassword}
+                        onChange={(e) => setCurrPassword(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] text-text-dark uppercase">New Password</label>
+                      <input
+                        type="password"
+                        className="bg-black/25 border border-border-color rounded p-1.5 text-text-main outline-none focus:border-primary text-xs"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] text-text-dark uppercase">Confirm Password</label>
+                      <input
+                        type="password"
+                        className="bg-black/25 border border-border-color rounded p-1.5 text-text-main outline-none focus:border-primary text-xs"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end mt-1.5">
+                    <button type="submit" className="bg-gradient-to-r from-primary to-secondary text-white p-1.5 px-3 rounded text-[11px] font-semibold cursor-pointer border-none shadow-md shadow-primary/20">
+                      Update Password
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {settingsTab === "history" && (
                 /* History logs tab */
                 <div className="flex flex-col gap-3">
                   {history.length === 0 ? (

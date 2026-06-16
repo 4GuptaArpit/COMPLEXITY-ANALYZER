@@ -19,6 +19,16 @@
 
   --font-sans: 'Inter', sans-serif;
   --font-mono: 'Fira Code', monospace;
+
+  /* Scaled up global font scale */
+  --font-size-xs: 0.85rem;
+  --font-size-sm: 0.95rem;
+  --font-size-base: 1.0625rem;
+  --font-size-lg: 1.2rem;
+  --font-size-xl: 1.375rem;
+  --font-size-2xl: 1.65rem;
+  --font-size-3xl: 2.0rem;
+  --font-size-4xl: 2.4rem;
   
   --shadow-glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   --shadow-glow-indigo: 0 0 15px rgba(99, 102, 241, 0.4);
@@ -69,9 +79,14 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    border-color: rgba(99, 102, 241, 0.25);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.12), 0 0 15px rgba(99, 102, 241, 0.15);
+    border-color: var(--color-secondary);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25), 0 0 18px rgba(6, 182, 212, 0.45);
   }
+}
+
+.light-theme .glass-panel:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 8px 32px 0 rgba(99, 102, 241, 0.06), 0 0 18px rgba(99, 102, 241, 0.25);
 }
 
 @layer base {
@@ -216,4 +231,34 @@
 .light-theme .diff-body-right {
   background-color: rgba(240, 253, 250, 0.65);
   color: #022c22;
+}
+
+/* Global button and inputs hover glow transition */
+button:not([disabled]),
+input,
+textarea,
+select {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Bright neon blue border + glow for black theme */
+button.border:not([disabled]):hover,
+button.border-border-color:not([disabled]):hover,
+.border-border-color:hover,
+input:hover,
+textarea:hover,
+select:hover {
+  border-color: var(--color-secondary) !important;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.45);
+}
+
+/* Suitable colour (Royal Indigo) border + glow for white theme */
+.light-theme button.border:not([disabled]):hover,
+.light-theme button.border-border-color:not([disabled]):hover,
+.light-theme .border-border-color:hover,
+.light-theme input:hover,
+.light-theme textarea:hover,
+.light-theme select:hover {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
 }

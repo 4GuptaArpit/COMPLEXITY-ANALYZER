@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Play, Sparkles, AlertCircle, Lock, Database } from "lucide-react";
 import { mockAlgorithms } from "../mockData";
 
@@ -21,14 +21,18 @@ export default function EditorPanel({
 }) {
   const textareaRef = useRef(null);
   const lineNumbersRef = useRef(null);
+  const [scrollTop, setScrollTop] = useState(0);
 
   const lines = code.split("\n");
   const lineCount = Math.max(lines.length, 1);
 
   // Sync scroll of textarea and line numbers
   const handleScroll = () => {
-    if (textareaRef.current && lineNumbersRef.current) {
-      lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
+    if (textareaRef.current) {
+      setScrollTop(textareaRef.current.scrollTop);
+      if (lineNumbersRef.current) {
+        lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
+      }
     }
   };
 
@@ -36,6 +40,19 @@ export default function EditorPanel({
   useEffect(() => {
     handleScroll();
   }, [code]);
+
+  // Smoothly scroll active line into view during simulation
+  useEffect(() => {
+    if (activeSimLine && textareaRef.current) {
+      const lineHeight = 22;
+      const paddingTop = 16;
+      const targetScrollTop = (activeSimLine - 1) * lineHeight + paddingTop - (textareaRef.current.clientHeight / 2);
+      textareaRef.current.scrollTo({
+        top: Math.max(0, targetScrollTop),
+        behavior: "smooth"
+      });
+    }
+  }, [activeSimLine]);
 
   // Handle template switch
   const handleTemplateChange = (e) => {
@@ -67,7 +84,7 @@ export default function EditorPanel({
   // Calculate top offset for line highlighter (assuming 22px line height, matching index.css)
   const getHighlighterTop = () => {
     if (!activeSimLine) return -100;
-    return 16 + (activeSimLine - 1) * 22;
+    return 16 + (activeSimLine - 1) * 22 - scrollTop;
   };
 
   return (
@@ -122,11 +139,23 @@ export default function EditorPanel({
       <div className="relative flex-1 flex bg-black/90 rounded-b-xl font-mono overflow-hidden">
         {/* Line Numbers */}
         <div className="w-10 border-r border-white/5 text-text-dark text-right py-4 px-2 select-none text-[13px] overflow-hidden" ref={lineNumbersRef}>
-          {Array.from({ length: lineCount }).map((_, i) => (
-            <div key={i} style={{ height: "22px" }}>
-              {i + 1}
-            </div>
-          ))}
+          {Array.from({ length: lineCount }).map((_, i) => {
+            const lineNum = i + 1;
+            const isActive = lineNum === activeSimLine;
+            return (
+              <div 
+                key={i} 
+                style={{ height: "22px" }}
+                className={`transition-all duration-150 pr-1 rounded-sm ${
+                  isActive 
+                    ? "text-secondary font-bold bg-secondary/15 shadow-[0_0_8px_rgba(6,182,212,0.3)] scale-110" 
+                    : ""
+                }`}
+              >
+                {lineNum}
+              </div>
+            );
+          })}
         </div>
 
         {/* Textarea Area */}
