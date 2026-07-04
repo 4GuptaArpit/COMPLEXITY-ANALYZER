@@ -1,0 +1,229 @@
+﻿
+E:\BUILDING\complexity-analyzer\src\App.jsx
+    1:8   error  'React' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         no-unused-vars
+    2:45  error  'LogIn' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         no-unused-vars
+    2:52  error  'Award' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         no-unused-vars
+    2:69  error  'ShieldAlert' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-unused-vars
+    2:82  error  'Sun' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           no-unused-vars
+    2:87  error  'Moon' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          no-unused-vars
+    9:8   error  'HistorySection' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                no-unused-vars
+  125:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  123 |
+  124 |   useEffect(() => {
+> 125 |     setIsSidebarOpen(userTier !== "premium");
+      |     ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  126 |   }, [userTier]);
+  127 |
+  128 |   useEffect(() => {                                                                                                                                                                                                                                react-hooks/set-state-in-effect
+  143:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  141 |     const defaultAlgo = mockAlgorithms.find((a) => a.id === "bubble_sort");
+  142 |     if (defaultAlgo) {
+> 143 |       setCode(defaultAlgo.code);
+      |       ^^^^^^^ Avoid calling setState() directly within an effect
+  144 |       setSelectedLanguage(defaultAlgo.language);
+  145 |       setAnalysisResult({
+  146 |         timeComplexity: defaultAlgo.timeComplexity,                                                                            react-hooks/set-state-in-effect
+  162:9   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  160 |       const step = analysisResult.simulation[activeStepIndex];
+  161 |       if (step) {
+> 162 |         setActiveSimLine(step.line);
+      |         ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  163 |       }
+  164 |     } else {
+  165 |       setActiveSimLine(null);                                                                                                                                                           react-hooks/set-state-in-effect
+  171:24  error  Error: Cannot access variable before it is declared
+
+`detectLanguage` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  169 |   useEffect(() => {
+  170 |     if (selectedLanguage === "auto" && code) {
+> 171 |       const detected = detectLanguage(code);
+      |                        ^^^^^^^^^^^^^^ `detectLanguage` accessed before it is declared
+  172 |       setDetectedLanguage(detected);
+  173 |     }
+  174 |   }, [code, selectedLanguage]);
+
+  180 |
+  181 |
+> 182 |   const detectLanguage = (sourceCode) => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 183 |     if (!sourceCode) return "javascript";
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 184 |     const lower = sourceCode.toLowerCase();
+      ΓÇª
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 205 |     return "javascript";
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 206 |   };
+      | ^^^^^ `detectLanguage` is declared here
+  207 |
+  208 |   const loadMockCustomAnalysis = () => {
+  209 |     // 1. Check if the pasted code matches any optimized or standard algorithm signature  react-hooks/immutability
+  172:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  170 |     if (selectedLanguage === "auto" && code) {
+  171 |       const detected = detectLanguage(code);
+> 172 |       setDetectedLanguage(detected);
+      |       ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  173 |     }
+  174 |   }, [code, selectedLanguage]);
+  175 |                                                                                                                                                            react-hooks/set-state-in-effect
+  177:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  175 |
+  176 |   useEffect(() => {
+> 177 |     setConvertedCode("");
+      |     ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  178 |     setConversionExplanation("");
+  179 |   }, [code, selectedLanguage, selectedTemplate]);
+  180 |                                                                                                                                                                                                      react-hooks/set-state-in-effect
+  334:9   error  The value assigned to 'name' is not used in subsequent statements                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         no-useless-assignment
+  339:34  error  Unnecessary escape character: \/                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          no-useless-escape
+  339:36  error  Unnecessary escape character: \/                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          no-useless-escape
+  339:42  error  Unnecessary escape character: \*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          no-useless-escape
+
+E:\BUILDING\complexity-analyzer\src\components\AdSidebar.jsx
+  1:8  error  'React' is defined but never used  no-unused-vars
+
+E:\BUILDING\complexity-analyzer\src\components\ChartViewer.jsx
+   1:8   error  'React' is defined but never used                                 no-unused-vars
+  29:11  error  The value assigned to 'val' is not used in subsequent statements  no-useless-assignment
+
+E:\BUILDING\complexity-analyzer\src\components\ConverterPanel.jsx
+   1:8   error  'React' is defined but never used        no-unused-vars
+   2:34  error  'Lock' is defined but never used         no-unused-vars
+   2:50  error  'AlertCircle' is defined but never used  no-unused-vars
+   7:3   error  'userTier' is defined but never used     no-unused-vars
+  13:3   error  'onSignUp' is defined but never used     no-unused-vars
+
+E:\BUILDING\complexity-analyzer\src\components\EditorPanel.jsx
+  1:8   error  'React' is defined but never used        no-unused-vars
+  2:26  error  'AlertCircle' is defined but never used  no-unused-vars
+
+E:\BUILDING\complexity-analyzer\src\components\FeatureComparison.jsx
+  1:8  error  'React' is defined but never used  no-unused-vars
+
+E:\BUILDING\complexity-analyzer\src\components\Footer.jsx
+  1:8  error  'React' is defined but never used  no-unused-vars
+
+E:\BUILDING\complexity-analyzer\src\components\Header.jsx
+    1:8   error  'React' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          no-unused-vars
+    3:13  error  'Award' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          no-unused-vars
+    4:36  error  'Lock' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           no-unused-vars
+    4:42  error  'Database' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       no-unused-vars
+    5:3   error  'Calendar' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       no-unused-vars
+    5:32  error  'ChevronLeft' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    no-unused-vars
+    5:45  error  'ChevronRight' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-unused-vars
+    7:10  error  'getApiKey' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      no-unused-vars
+    7:21  error  'saveApiKey' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     no-unused-vars
+  132:66  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  130 |         <div class="total">Total Amount Billed: ${tx.amount}</div>
+  131 |         <div class="footer">
+> 132 |           Thank you for choosing BigO.ai. Verification ID: txn_${Math.random().toString(36).substring(2, 12).toUpperCase()}<br>
+      |                                                                  ^^^^^^^^^^^^^ Cannot call impure function
+  133 |           For billing support, reach out to billing@bigo.ai.
+  134 |         </div>
+  135 |         <script>window.print();</script>  react-hooks/purity
+  519:37  error  'hTotalPages' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           no-unused-vars
+
+E:\BUILDING\complexity-analyzer\src\components\HistorySection.jsx
+  1:8  error  'React' is defined but never used  no-unused-vars
+
+E:\BUILDING\complexity-analyzer\src\components\OptimizerPanel.jsx
+   1:8   error  'React' is defined but never used                                 no-unused-vars
+   2:20  error  'ArrowRight' is defined but never used                            no-unused-vars
+  50:11  error  The value assigned to 'val' is not used in subsequent statements  no-useless-assignment
+
+E:\BUILDING\complexity-analyzer\src\components\SimulatorPanel.jsx
+   1:8  error    'React' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-unused-vars
+  11:3  error    'tokens' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                no-unused-vars
+  12:3  error    'setTokens' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             no-unused-vars
+  28:7  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  26 |   useEffect(() => {
+  27 |     if (!simulationSteps || activeStepIndex === 0) {
+> 28 |       setChangedVars({});
+     |       ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  29 |       return;
+  30 |     }
+  31 |                react-hooks/set-state-in-effect
+  77:6  warning  React Hook useEffect has a missing dependency: 'setActiveStepIndex'. Either include it or remove the dependency array. If 'setActiveStepIndex' changes too often, find the parent component that defines it and wrap that definition in useCallback                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-hooks/exhaustive-deps
+  81:7  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  79 |   useEffect(() => {
+  80 |     if (activeStepIndex >= totalSteps - 1) {
+> 81 |       setIsPlaying(false);
+     |       ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  82 |     }
+  83 |   }, [activeStepIndex, totalSteps]);
+  84 |  react-hooks/set-state-in-effect
+  88:5  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  86 |
+  87 |   useEffect(() => {
+> 88 |     setSelectedAnswer(null);
+     |     ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  89 |     setQuizAnswered(false);
+  90 |     setQuizStatus("");
+  91 |   }, [activeStepIndex]);         react-hooks/set-state-in-effect
+
+E:\BUILDING\complexity-analyzer\src\utils\markdownParser.jsx
+   1:8  error  'React' is defined but never used            no-unused-vars
+  42:7  error  'inList' is assigned a value but never used  no-unused-vars
+
+Γ£û 53 problems (52 errors, 1 warning)
+
