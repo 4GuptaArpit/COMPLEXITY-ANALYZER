@@ -200,81 +200,224 @@ export default function App() {
       }
       return;
     }
-
     // 2. Default regex-based offline analyzer for arbitrary custom code
     const codeLower = code.toLowerCase();
+    const lines = code.split("\n");
+    const lineCount = lines.length;
+
+    // ── Time Complexity Detection ────────────────────────────────────────
     let time = "O(1)";
-    let space = "O(1)";
-    let explanation = `This algorithm has constant time complexity O(1) because it runs in a single execution step without loop iterations or recursive branching.
+    let timeExplanationLines = [];
+    let heatmap = {};
 
-### Details:
-- **Operations:** Runs in constant CPU ticks.
-- **Scaling:** Input growth (N) has zero impact on runtime performance.`;
-    let optCode = code;
-    let optExpl = "Your code is already running at optimal complexity! No further improvements were detected.";
-    let heatmap = { 1: "low", 2: "low" };
-    
-    if (codeLower.includes("for") || codeLower.includes("while")) {
-      const firstIndex = codeLower.indexOf("for");
-      const secondIndex = codeLower.indexOf("for", firstIndex + 3);
-      
-      if (secondIndex !== -1 || codeLower.includes("nested") || codeLower.split("for").length > 2) {
+    const hasFor = codeLower.includes("for");
+    const hasWhile = codeLower.includes("while");
+    const hasLoop = hasFor || hasWhile;
+    const forCount = (codeLower.match(/\bfor\b/g) || []).length;
+    const whileCount = (codeLower.match(/\bwhile\b/g) || []).length;
+    const totalLoops = forCount + whileCount;
+
+    // Binary search patterns: mid, left/right/lo/hi halving
+    const hasBinarySearchPattern = (
+      (codeLower.includes("mid") && (codeLower.includes("left") || codeLower.includes("lo")) && (codeLower.includes("right") || codeLower.includes("hi"))) ||
+      codeLower.includes("math.log") || codeLower.includes(">> 1")
+    );
+
+    // Sorting detection
+    const hasSortCall = /\.sort\s*\(|arrays\.sort|collections\.sort|std::sort|\.sorted\(/.test(codeLower);
+
+    // Recursion detection
+    const functionNames = [...code.matchAll(/(?:function|def|fn|void|int|string|bool)\s+(\w+)\s*\(/gi)].map(m => m[1]);
+    const hasRecursion = functionNames.some(name => {
+      const regex = new RegExp(`\\b${name}\\s*\\(`, "g");
+      return (code.match(regex) || []).length > 1;
+    });
+    const hasMemo = codeLower.includes("memo") || codeLower.includes("dp[") || codeLower.includes("cache");
+
+    if (hasBinarySearchPattern && hasLoop && !hasSortCall) {
+      time = "O(log N)";
+      timeExplanationLines = [
+        "Detected a binary search pattern: the search space is **halved on each iteration** using `mid`, `left`/`right` (or `lo`/`hi`) pointers.",
+        "- **Operations:** At each step the range `[left, right]` is cut in half.",
+        "- **Result:** At most log₂(N) iterations are needed, giving **O(log N)** time."
+      ];
+    } else if (hasSortCall && totalLoops <= 1) {
+      time = "O(N log N)";
+      timeExplanationLines = [
+        "Detected a built-in sort call (e.g. `Arrays.sort`, `.sort()`, `std::sort`). Most library sort implementations use Timsort or Introsort.",
+        "- **Operations:** Sorting N elements takes N·log₂(N) comparisons.",
+        "- **Result:** Dominant operation is the sort → **O(N log N)**."
+      ];
+    } else if (hasRecursion && !hasMemo) {
+      time = "O(2^N)";
+      timeExplanationLines = [
+        "Detected multiple recursive calls without memoization. Each call branches into two (or more) sub-calls, creating an exponential call tree.",
+        "- **Operations:** The number of sub-problems doubles at each level → O(2^N).",
+        "- **Stack Space:** Recursion depth can reach N levels."
+      ];
+    } else if (hasRecursion && hasMemo) {
+      time = "O(N)";
+      timeExplanationLines = [
+        "Detected recursion **with memoization/DP table**. Each unique sub-problem is solved only once and cached, converting exponential recursion to linear.",
+        "- **Operations:** Each of the N unique sub-problems is solved exactly once → O(N).",
+        "- **Space:** The cache/DP table itself uses O(N) auxiliary space."
+      ];
+    } else if (totalLoops >= 2 && hasLoop) {
+      // Detect if loops are nested
+      const isNested = /for\s*\([^)]*\)[^{]*\{[^}]*for\s*\(|while\s*\([^)]*\)[^{]*\{[^}]*for\s*\(/s.test(code) ||
+        (code.indexOf("for", code.indexOf("for") + 3) !== -1 && code.indexOf("for", code.indexOf("for") + 3) < code.indexOf("}", code.indexOf("for")));
+      if (isNested || totalLoops >= 3) {
         time = "O(N²)";
-        space = "O(1)";
-        explanation = `Detected nested loops in your algorithm. For an input of size N, the outer loop iterates N times, and for each iteration, the inner loop iterates up to N times.
-
-### Details:
-- **Operations:** Scales quadratically N * N = N² operations.
-- **Bottleneck:** Highly inefficient for inputs exceeding N = 10,000.`;
-        optCode = `// Optimized alternative (simulated)\nfunction optimizedAlgo() {\n  // Using a Hash Map to reduce search time to O(N)\n  const map = new Map();\n  // ...\n}`;
-        optExpl = "We can optimize nested loops (O(N²)) by using a Hash Map to store previously visited elements. This allows us to perform lookups in O(1) time instead of nesting loops, reducing total runtime to O(N).";
-        heatmap = { 1: "low", 2: "medium", 3: "high", 4: "high" };
+        timeExplanationLines = [
+          "Detected **nested loops** in your algorithm. The outer loop runs N times; for each outer iteration, the inner loop also runs up to N times.",
+          "- **Operations:** N × N = N² total iterations.",
+          "- **Bottleneck:** Becomes very slow for inputs above N = 10,000."
+        ];
       } else {
         time = "O(N)";
-        space = "O(1)";
-        explanation = `Detected a single loop that iterates over the input elements. The execution time grows linearly with the size of the input.
-
-### Details:
-- **Operations:** Scales linearly O(N) operations.
-- **Scaling:** Doubling the input size roughly doubles the execution time.`;
-        heatmap = { 1: "low", 2: "high", 3: "low" };
+        timeExplanationLines = [
+          "Detected multiple sequential (non-nested) loops. Each loop processes the N-element input once.",
+          "- **Operations:** 2N or 3N operations → still **O(N)** (constants are dropped in Big-O).",
+          "- **Scaling:** Execution time grows linearly with input size."
+        ];
       }
-    } else if (codeLower.includes("recurse") || codeLower.includes("fib") || codeLower.split("function").length > 2) {
-      time = "O(2^N)";
-      space = "O(N)";
-      explanation = `Detected multiple recursive branches (like Fibonacci recursion). The algorithm splits execution sub-problems repeatedly without memoization cache lookups.
-
-### Details:
-- **Operations:** Scales exponentially O(2^N) operations.
-- **Stack Space:** Growth uses O(N) depth in the execution call stack.`;
-      optCode = `// Optimized alternative using memoization\nconst memo = {};\nfunction optimizedAlgo(n) {\n  if (n in memo) return memo[n];\n  // ...\n}`;
-      optExpl = "By caching recursive sub-calls in a Memoization lookup table, we avoid redundant calculations, improving performance from O(2^N) down to O(N) linear time.";
-      heatmap = { 1: "low", 2: "medium", 3: "high" };
+    } else if (hasLoop) {
+      time = "O(N)";
+      timeExplanationLines = [
+        "Detected a single loop that iterates over the input elements.",
+        "- **Operations:** Scales linearly — N iterations for N elements.",
+        "- **Scaling:** Doubling the input size roughly doubles the execution time."
+      ];
+    } else {
+      time = "O(1)";
+      timeExplanationLines = [
+        "No loops or recursion detected. The algorithm executes a fixed number of operations regardless of input size.",
+        "- **Operations:** Constant — does not grow with N.",
+        "- **Scaling:** Input size has zero impact on performance."
+      ];
     }
+
+    // ── Space Complexity Detection ───────────────────────────────────────
+    let space = "O(1)";
+    let spaceNote = "";
+
+    const has2DArray = /\[\s*\]\s*\[\s*\]|int\s*\[\s*\]\s*\[\s*\]|new\s+int\s*\[\w+\]\s*\[\w+\]|dp\s*=\s*\[\s*\[/.test(code);
+    const hasHashMap = /new\s+HashMap|new\s+Map\s*\(|new\s+HashSet|new\s+Set\s*\(|new\s+LinkedList|new\s+ArrayList|new\s+PriorityQueue|new\s+TreeMap|\{\s*\}/.test(code) &&
+      !/(=\s*\{\s*\}$|=\s*\{\s*\}\s*;$)/.test(code);
+    const hasNewArray = /new\s+int\s*\[|new\s+char\s*\[|new\s+double\s*\[|new\s+String\s*\[|new\s+Array\s*\(|new\s+boolean\s*\[|\[\s*\.\.\.|result\s*=\s*\[\]|output\s*=\s*\[\]/.test(code);
+    const hasResultList = /result|output|ans(?:wer)?|ret(?:urn)?\s*=\s*\[|List<|ArrayList<|vector</.test(codeLower);
+
+    if (has2DArray) {
+      space = "O(N²)";
+      spaceNote = "Detected a **2D array** (matrix). Storing an N×N matrix requires N² cells of memory.";
+    } else if (hasHashMap || hasNewArray || hasResultList || (hasRecursion && hasMemo)) {
+      space = "O(N)";
+      if (hasHashMap) spaceNote = "Detected **hash map / set / list** allocation that grows with input size N.";
+      else if (hasNewArray) spaceNote = "Detected an **array allocation** proportional to input size N.";
+      else if (hasRecursion && hasMemo) spaceNote = "The **memoization table** stores results for all N unique sub-problems.";
+      else spaceNote = "Detected a **result collection** (list/array/vector) that can grow up to size N.";
+    } else if (hasRecursion && !hasMemo) {
+      space = "O(N)";
+      spaceNote = "Recursive calls consume **O(N) stack space** (call stack depth proportional to input size N).";
+    }
+
+    // ── Build Explanation ────────────────────────────────────────────────
+    const explanation = [
+      `### Time Complexity: ${time}`,
+      ...timeExplanationLines,
+      "",
+      `### Space Complexity: ${space}`,
+      spaceNote || (space === "O(1)" ? "No additional memory structures detected. The algorithm uses only a constant amount of auxiliary space." : ""),
+    ].join("\n");
+
+    // ── Build Heatmap ────────────────────────────────────────────────────
+    lines.forEach((ln, i) => {
+      const l = ln.toLowerCase().trim();
+      if (l.includes("for") || l.includes("while")) heatmap[i + 1] = "high";
+      else if (l.includes("if") || l.includes("return") || l.includes("map.put") || l.includes("map.get") || l.includes(".add(")) heatmap[i + 1] = "medium";
+      else if (l.length > 2) heatmap[i + 1] = "low";
+    });
+
+    // ── Build Optimized Code Suggestion ─────────────────────────────────
+    let optCode = code;
+    let optExpl = "Your code appears to be running at a reasonable complexity for its structure. No automatic optimization was detected by the offline analyzer.";
+
+    if (time === "O(N²)") {
+      optCode = `// Optimization Suggestion: Replace nested loops with a Hash Map\n// Original time: O(N²) → Optimized: O(N)\n\n// Example pattern:\nconst seen = new Map();\nfor (const item of input) {\n  const complement = target - item;\n  if (seen.has(complement)) return [seen.get(complement), item];\n  seen.set(item, index);\n}`;
+      optExpl = "Nested loops (O(N²)) can often be replaced with a **Hash Map** for O(1) lookups. This brings total time down from O(N²) to O(N) — a dramatic improvement for large inputs.";
+    } else if (time === "O(2^N)") {
+      optCode = `// Optimization Suggestion: Add memoization to remove redundant calls\n// Original time: O(2^N) → Optimized: O(N)\n\nconst memo = new Map();\nfunction solve(n) {\n  if (memo.has(n)) return memo.get(n);\n  // ... recursive logic ...\n  const result = solve(n - 1) + solve(n - 2);\n  memo.set(n, result);\n  return result;\n}`;
+      optExpl = "Exponential recursion (O(2^N)) can be optimized to O(N) by **memoizing** previously computed results. Each unique sub-problem is solved exactly once instead of recomputed exponentially.";
+    }
+
+    // ── Build Simulation ─────────────────────────────────────────────────
+    const simulation = [];
+    const firstLoopLine = lines.findIndex(l => /\bfor\b|\bwhile\b/.test(l)) + 1;
+
+    simulation.push({
+      line: 1,
+      vars: { step: "init", n: "input.length" },
+      explanation: "Program starts. Variables and data structures are initialized."
+    });
+    if (firstLoopLine > 1) {
+      simulation.push({
+        line: Math.max(firstLoopLine - 1, 1),
+        vars: { status: "setup" },
+        explanation: "Declarations and setup before the main loop."
+      });
+    }
+    if (firstLoopLine > 0) {
+      simulation.push({
+        line: firstLoopLine,
+        vars: { i: "0", status: "loop_start" },
+        explanation: "Loop begins. Iterator starts at 0 and will run until the end of the input."
+      });
+      simulation.push({
+        line: firstLoopLine + 1,
+        vars: { i: "1", status: "iterating" },
+        explanation: "Processing element at index i=1. Core logic executes."
+      });
+      simulation.push({
+        line: firstLoopLine + 1,
+        vars: { i: "2", status: "iterating" },
+        explanation: "Next iteration. i=2. The pattern repeats N times total."
+      });
+    }
+    simulation.push({
+      line: lineCount,
+      vars: { status: "done", result: "computed" },
+      explanation: "Loop/recursion completes. Result is returned or stored."
+    });
 
     const mockResult = {
       timeComplexity: time,
       spaceComplexity: space,
-      explanation: explanation,
+      explanation,
       optimizedCode: optCode,
       optimizationExplanation: optExpl,
-      heatmap: heatmap,
-      simulation: [
-        { line: 1, vars: { status: "Init" }, explanation: "Initializing custom simulation" },
-        { line: 2, vars: { status: "Running", i: 0 }, explanation: "Starting main execution loop" },
-        { line: 3, vars: { status: "Computing", i: 1 }, explanation: "Processing elements... (AI trace fallback)" },
-        { line: 4, vars: { status: "Finishing" }, explanation: "Formatting final outputs" },
-        { line: 5, vars: { status: "Returned" }, explanation: "Simulation completed successfully!" }
-      ],
+      heatmap,
+      simulation,
       quiz: [
         {
           stepIndex: 2,
-          question: "In this custom simulation, what does N represent?",
-          options: ["The input size", "The number of local variables", "The compiler speed", "The execution time in milliseconds"],
-          answer: "The input size"
+          question: `This algorithm has ${time} time complexity. What does N represent?`,
+          options: ["The size of the input (e.g. array length)", "The number of CPU cores", "The memory in megabytes", "The number of functions defined"],
+          answer: "The size of the input (e.g. array length)"
+        },
+        {
+          stepIndex: 3,
+          question: `The space complexity is ${space}. Why?`,
+          options: [
+            space === "O(1)" ? "No extra memory structures are allocated" : spaceNote.replace(/\*\*/g, "").slice(0, 60),
+            "Because the code has many comments",
+            "Because the input is always sorted",
+            "Because of the return statement"
+          ],
+          answer: space === "O(1)" ? "No extra memory structures are allocated" : spaceNote.replace(/\*\*/g, "").slice(0, 60)
         }
       ]
     };
+
 
     setAnalysisResult(mockResult);
     setActiveStepIndex(0);
@@ -399,11 +542,105 @@ export default function App() {
     }
   };
 
+  const translateCodeBasic = (sourceCode, src, dest) => {
+    let lines = sourceCode.split("\n");
+    let translatedLines = [];
+    let explanation = `Translated code from ${src.toUpperCase()} to ${dest.toUpperCase()} using BigO.ai's offline rule-based converter. (Connect a Gemini API Key in Settings for full semantic, AI-powered translation).`;
+
+    for (let line of lines) {
+      let tLine = line;
+
+      // ── Translate Loops ──────────────────────────────────────────────────
+      if (dest === "python") {
+        tLine = tLine.replace(/for\s*\(\s*(?:let|int|var)\s+(\w+)\s*=\s*0\s*;\s*\1\s*<\s*([^;]+)\s*;\s*\1\s*\+\+\s*\)\s*\{?/, "for $1 in range($2):");
+        tLine = tLine.replace(/for\s*\(\s*(?:let|int|var)\s+(\w+)\s*=\s*([^;]+)\s*;\s*\1\s*<\s*([^;]+)\s*;\s*\1\s*\+\+\s*\)\s*\{?/, "for $1 in range($2, $3):");
+      } else if (dest === "rust") {
+        tLine = tLine.replace(/for\s*\(\s*(?:let|int|var)\s+(\w+)\s*=\s*0\s*;\s*\1\s*<\s*([^;]+)\s*;\s*\1\s*\+\+\s*\)\s*\{?/, "for $1 in 0..$2 {");
+        tLine = tLine.replace(/for\s*\(\s*(?:let|int|var)\s+(\w+)\s*=\s*([^;]+)\s*;\s*\1\s*<\s*([^;]+)\s*;\s*\1\s*\+\+\s*\)\s*\{?/, "for $1 in $2..$3 {");
+      } else if (dest === "javascript" || dest === "java" || dest === "cpp") {
+        const type = dest === "javascript" ? "let" : "int";
+        tLine = tLine.replace(/for\s+(\w+)\s+in\s+range\s*\(\s*([^,)]+)\s*\)\s*:/, `for (${type} $1 = 0; $1 < $2; $1++) {`);
+        tLine = tLine.replace(/for\s+(\w+)\s+in\s+range\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)\s*:/, `for (${type} $1 = $2; $1 < $3; $1++) {`);
+      }
+
+      // ── Translate Prints ─────────────────────────────────────────────────
+      if (dest === "python") {
+        tLine = tLine.replace(/console\.log\s*\(([^)]+)\)/, "print($1)");
+        tLine = tLine.replace(/System\.out\.println\s*\(([^)]+)\)/, "print($1)");
+        tLine = tLine.replace(/std::cout\s*<<\s*([^<]+)\s*<<\s*std::endl;?/, "print($1)");
+        tLine = tLine.replace(/println!\s*\(([^)]+)\)/, "print($1)");
+      } else if (dest === "javascript") {
+        tLine = tLine.replace(/print\s*\(([^)]+)\)/, "console.log($1)");
+        tLine = tLine.replace(/System\.out\.println\s*\(([^)]+)\)/, "console.log($1)");
+        tLine = tLine.replace(/std::cout\s*<<\s*([^<]+)\s*<<\s*std::endl;?/, "console.log($1)");
+        tLine = tLine.replace(/println!\s*\(([^)]+)\)/, "console.log($1)");
+      } else if (dest === "java") {
+        tLine = tLine.replace(/console\.log\s*\(([^)]+)\)/, "System.out.println($1)");
+        tLine = tLine.replace(/print\s*\(([^)]+)\)/, "System.out.println($1)");
+        tLine = tLine.replace(/std::cout\s*<<\s*([^<]+)\s*<<\s*std::endl;?/, "System.out.println($1)");
+        tLine = tLine.replace(/println!\s*\(([^)]+)\)/, "System.out.println($1)");
+      } else if (dest === "cpp") {
+        tLine = tLine.replace(/console\.log\s*\(([^)]+)\)/, "std::cout << $1 << std::endl;");
+        tLine = tLine.replace(/print\s*\(([^)]+)\)/, "std::cout << $1 << std::endl;");
+        tLine = tLine.replace(/System\.out\.println\s*\(([^)]+)\)/, "std::cout << $1 << std::endl;");
+        tLine = tLine.replace(/println!\s*\(([^)]+)\)/, "std::cout << $1 << std::endl;");
+      } else if (dest === "rust") {
+        tLine = tLine.replace(/console\.log\s*\(([^)]+)\)/, "println!($1)");
+        tLine = tLine.replace(/print\s*\(([^)]+)\)/, "println!($1)");
+        tLine = tLine.replace(/System\.out\.println\s*\(([^)]+)\)/, "println!($1)");
+        tLine = tLine.replace(/std::cout\s*<<\s*([^<]+)\s*<<\s*std::endl;?/, "println!($1)");
+      }
+
+      // ── Translate Variables/Constants ───────────────────────────────────
+      if (dest === "python") {
+        tLine = tLine.replace(/(?:let|const|var|int|double|float|String|boolean)\s+(\w+)\s*=\s*([^;]+);?/, "$1 = $2");
+      } else if (dest === "rust") {
+        tLine = tLine.replace(/(?:let|const|var|int|double|float|String|boolean)\s+(\w+)\s*=\s*([^;]+);?/, "let mut $1 = $2;");
+      } else if (dest === "javascript") {
+        tLine = tLine.replace(/(?:int|double|float|String|boolean)\s+(\w+)\s*=\s*([^;]+);?/, "let $1 = $2;");
+      } else if (dest === "java" || dest === "cpp") {
+        tLine = tLine.replace(/(?:let|const|var)\s+(\w+)\s*=\s*(\d+);?/, "int $1 = $2;");
+        tLine = tLine.replace(/(?:let|const|var)\s+(\w+)\s*=\s*["']([^"']*)["'];?/, "String $1 = \"$2\";");
+      }
+
+      // ── Translate Functions ──────────────────────────────────────────────
+      if (dest === "python") {
+        tLine = tLine.replace(/function\s+(\w+)\s*\(([^)]*)\)\s*\{?/, "def $1($2):");
+        tLine = tLine.replace(/const\s+(\w+)\s*=\s*\(([^)]*)\)\s*=>\s*\{?/, "def $1($2):");
+        tLine = tLine.replace(/public\s+(?:static\s+)?(?:\w+)\s+(\w+)\s*\(([^)]*)\)\s*\{?/, "def $1($2):");
+        tLine = tLine.replace(/fn\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*\w+)?\s*\{?/, "def $1($2):");
+      } else if (dest === "rust") {
+        tLine = tLine.replace(/function\s+(\w+)\s*\(([^)]*)\)\s*\{?/, "fn $1($2) {");
+        tLine = tLine.replace(/def\s+(\w+)\s*\(([^)]*)\)\s*:/, "fn $1($2) {");
+      } else if (dest === "javascript") {
+        tLine = tLine.replace(/def\s+(\w+)\s*\(([^)]*)\)\s*:/, "function $1($2) {");
+        tLine = tLine.replace(/fn\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*\w+)?\s*\{?/, "function $1($2) {");
+      } else if (dest === "java" || dest === "cpp") {
+        tLine = tLine.replace(/def\s+(\w+)\s*\(([^)]*)\)\s*:/, "void $1($2) {");
+        tLine = tLine.replace(/function\s+(\w+)\s*\(([^)]*)\)\s*\{?/, "void $1($2) {");
+        tLine = tLine.replace(/fn\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*\w+)?\s*\{?/, "void $1($2) {");
+      }
+
+      if (dest === "python") {
+        tLine = tLine.replace(/\}\s*$/, "");
+      }
+
+      translatedLines.push(tLine);
+    }
+
+    let codeStr = translatedLines.join("\n");
+    if (dest === "python") {
+      codeStr = codeStr.replace(/\n\s*\n/g, "\n");
+    }
+
+    return { code: codeStr, explanation };
+  };
+
   const loadMockTranslation = (sourceLang, targetLang) => {
-    // If the template is custom, prompt user to add their key
     if (selectedTemplate === "custom") {
-      setConvertedCode(`// Gemini API Key required for custom code conversion.\n// To enable live AI conversion of your custom algorithms, please go to Settings (gear icon at top-right) and save a valid Gemini API Key.`);
-      setConversionExplanation("Custom code translations require a Gemini API Key to run content mapping dynamically. Pre-loaded template translations (e.g. Bubble Sort) work out of the box without any key.");
+      const basic = translateCodeBasic(code, sourceLang, targetLang);
+      setConvertedCode(basic.code);
+      setConversionExplanation(basic.explanation);
       return;
     }
 

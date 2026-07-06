@@ -107,6 +107,17 @@ export function AuthProvider({ children }) {
   };
 
   const deductSimToken = async () => {
+    if (!token || user?.id === "demo_id") {
+      setUser((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          tokens: Math.max(0, prev.tokens - 1)
+        };
+      });
+      return true;
+    }
+
     try {
       const { data } = await client.patch("/billing/deduct-token");
       setUser(data.user);

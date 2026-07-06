@@ -141,7 +141,57 @@
   height: 22px;
 }
 
-/* Keyframes for variable flash */
+/* ── Loading Spinner ─────────────────────────────────── */
+.loader-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 18px;
+  padding: 40px 20px;
+  min-height: 200px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(99, 102, 241, 0.15);
+  border-top-color: var(--color-primary);
+  border-right-color: var(--color-secondary);
+  border-radius: 50%;
+  animation: spin 0.75s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.2);
+}
+
+.loader-text {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  text-align: center;
+  letter-spacing: 0.02em;
+  animation: fadeInOut 1.8s ease-in-out infinite;
+  max-width: 240px;
+  line-height: 1.5;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 1;   }
+}
+
+/* ── Complexity Badge Glow ───────────────────────────── */
+@keyframes badge-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+  50%       { box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.12); }
+}
+.complexity-badge-animate {
+  animation: badge-pulse 2.5s ease-in-out infinite;
+}
+
 @keyframes flash-yellow {
   0% { text-shadow: 0 0 8px rgba(234, 179, 8, 0.6); font-weight: 600; }
   100% { text-shadow: none; font-weight: normal; }

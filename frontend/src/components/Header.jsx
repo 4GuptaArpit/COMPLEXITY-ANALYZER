@@ -3,6 +3,9 @@ import {
   Settings, CreditCard, Sparkles, Coins, Sun, Moon, 
   LogIn, LogOut, User, Clock, Zap, Play, Trash2, Key 
 } from "lucide-react";
+import { getApiKey, saveApiKey } from "../geminiService";
+import { useToast } from "../context/ToastContext";
+
 
 const handleDownloadReceipt = (tx, userContact, userTier) => {
   const htmlContent = `
@@ -100,6 +103,16 @@ export default function Header({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pwdStatus, setPwdStatus] = useState({ type: "", text: "" });
   const [historyPage, setHistoryPage] = useState(1);
+  const [apiKeyVal, setApiKeyVal] = useState("");
+  const { showToast } = useToast();
+
+  const handleOpenSettings = (tab) => {
+    setSettingsTab(tab);
+    setApiKeyVal(getApiKey());
+    setShowSettings(true);
+    setHistoryPage(1);
+    setShowSettingsDropdown(false);
+  };
 
   const activeUser = usersDb.find(u => u.contact === userContact) || {};
   const activeUserSignup = activeUser.signup || "2026-06-15 14:32";
@@ -243,7 +256,7 @@ export default function Header({
         )}
 
         {/* 7. Settings Button with Dropdown */}
-        {userContact && (
+        {userContact ? (
           <div className="relative">
             <button
               className={`bg-white/5 dark:bg-black/3 border text-text-main p-2 px-3 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15 transition-all duration-200 flex items-center gap-1.5 ${
@@ -268,36 +281,28 @@ export default function Header({
                   </div>
                   <button
                     className="w-full text-left bg-transparent border-none px-3.5 py-2 text-xs text-text-muted hover:text-text-main hover:bg-white/5 cursor-pointer flex items-center gap-2 transition-colors"
-                    onClick={() => {
-                      setSettingsTab("account");
-                      setShowSettings(true);
-                      setHistoryPage(1);
-                      setShowSettingsDropdown(false);
-                    }}
+                    onClick={() => handleOpenSettings("account")}
                   >
                     <User size={13} className="text-primary" />
                     <span>Account</span>
                   </button>
                   <button
                     className="w-full text-left bg-transparent border-none px-3.5 py-2 text-xs text-text-muted hover:text-text-main hover:bg-white/5 cursor-pointer flex items-center gap-2 transition-colors"
-                    onClick={() => {
-                      setSettingsTab("password");
-                      setShowSettings(true);
-                      setHistoryPage(1);
-                      setShowSettingsDropdown(false);
-                    }}
+                    onClick={() => handleOpenSettings("password")}
                   >
                     <Key size={13} className="text-secondary" />
                     <span>Change Password</span>
                   </button>
                   <button
                     className="w-full text-left bg-transparent border-none px-3.5 py-2 text-xs text-text-muted hover:text-text-main hover:bg-white/5 cursor-pointer flex items-center gap-2 transition-colors"
-                    onClick={() => {
-                      setSettingsTab("history");
-                      setShowSettings(true);
-                      setHistoryPage(1);
-                      setShowSettingsDropdown(false);
-                    }}
+                    onClick={() => handleOpenSettings("apikey")}
+                  >
+                    <Settings size={13} className="text-accent-green" />
+                    <span>Gemini API Key</span>
+                  </button>
+                  <button
+                    className="w-full text-left bg-transparent border-none px-3.5 py-2 text-xs text-text-muted hover:text-text-main hover:bg-white/5 cursor-pointer flex items-center gap-2 transition-colors"
+                    onClick={() => handleOpenSettings("history")}
                   >
                     <Clock size={13} className="text-accent-yellow" />
                     <span>History</span>
@@ -306,6 +311,15 @@ export default function Header({
               </>
             )}
           </div>
+        ) : (
+          <button
+            className={`bg-white/5 dark:bg-black/3 border text-text-main p-2 px-3 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15 transition-all duration-200 flex items-center gap-1.5 border-border-color`}
+            onClick={() => handleOpenSettings("apikey")}
+            title="Gemini API Key Settings"
+          >
+            <Settings size={14} />
+            <span>API Key Settings</span>
+          </button>
         )}
 
         {/* 8. Logout Button */}
@@ -343,6 +357,12 @@ export default function Header({
                   <>
                     <Key size={18} className="text-secondary" />
                     <span>Change Password</span>
+                  </>
+                )}
+                {settingsTab === "apikey" && (
+                  <>
+                    <Settings size={18} className="text-accent-green" />
+                    <span>Gemini API Key Settings</span>
                   </>
                 )}
                 {settingsTab === "history" && (
@@ -484,6 +504,50 @@ export default function Header({
                     </button>
                   </div>
                 </form>
+              )}
+
+              {settingsTab === "apikey" && (
+                <div className="bg-white/3 border border-border-color rounded-lg p-4 flex flex-col gap-4 text-left">
+                  <h4 className="font-bold text-text-main uppercase tracking-wider text-[10px] text-accent-green flex items-center gap-1.5">
+                    <Settings size={13} />
+                    <span>Gemini API Key Integration</span>
+                  </h4>
+                  
+                  <p className="text-text-muted text-[11px] leading-relaxed">
+                    By default, BigO.ai uses local offline heuristics for complexity analysis. 
+                    To enable **live AI-powered complexity analysis, translation, and code optimization**, 
+                    paste a valid Gemini API Key below.
+                  </p>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] text-text-dark uppercase font-semibold">Gemini API Key</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="password"
+                        placeholder="Paste your AQ. or AIzaSy API key here..."
+                        className="flex-1 bg-black/25 border border-border-color rounded p-2 text-text-main outline-none focus:border-primary text-xs"
+                        value={apiKeyVal}
+                        onChange={(e) => setApiKeyVal(e.target.value)}
+                      />
+                      <button
+                        onClick={() => {
+                          saveApiKey(apiKeyVal.trim());
+                          showToast("Gemini API Key saved successfully!", "success");
+                        }}
+                        className="bg-gradient-to-r from-primary to-secondary text-white p-2 px-4 rounded text-xs font-semibold cursor-pointer border-none shadow-md shadow-primary/20 hover:brightness-110 transition-all animate-none"
+                      >
+                        Save Key
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-black/10 border border-border-color rounded p-3 text-[11px] text-text-muted flex flex-col gap-1">
+                    <span className="font-bold text-text-main">How to get a free API Key:</span>
+                    <span>1. Go to <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-primary hover:underline font-semibold">Google AI Studio</a>.</span>
+                    <span>2. Click on &quot;Get API Key&quot; and generate a new key.</span>
+                    <span>3. Paste the key here and save. Your key is stored purely locally in your browser.</span>
+                  </div>
+                </div>
               )}
 
               {settingsTab === "history" && (
