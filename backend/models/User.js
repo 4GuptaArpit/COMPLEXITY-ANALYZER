@@ -12,6 +12,21 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    name: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    github: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    bio: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     tier: {
       type: String,
       enum: ["anonymous", "free", "premium"],

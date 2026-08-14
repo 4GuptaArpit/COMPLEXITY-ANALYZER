@@ -22,5 +22,8 @@ const feedbackSchema = new mongoose.Schema(
   }
 );
 
+feedbackSchema.index({ createdAt: -1 });
+
 const Feedback = mongoose.model("Feedback", feedbackSchema);
 export default Feedback;
+

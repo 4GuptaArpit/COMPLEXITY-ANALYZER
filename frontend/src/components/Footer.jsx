@@ -126,18 +126,18 @@ export default function Footer({ onFeedbackSubmitted }) {
           {/* Legal Compliance Links */}
           <div className="flex flex-col gap-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-text-dark">
-              Legal Documents
+              Platform & Privacy
             </span>
             <div className="flex flex-wrap gap-3.5 text-[10.5px] text-text-muted">
               <a href="#privacy" className="hover:text-primary underline transition-colors">Privacy Policy</a>
               <a href="#terms" className="hover:text-primary underline transition-colors">Terms of Service</a>
-              <a href="#refund" className="hover:text-primary underline transition-colors">Refund & Cancellation</a>
             </div>
             <p className="text-[9.5px] text-text-dark mt-1">
-              © 2026 BigO.ai. All rights reserved. Secure transactions simulated for Stripe.
+              © 2026 BigO.ai. All rights reserved. Free developer tool for Big-O algorithm analysis & simulation.
             </p>
           </div>
         </div>
+
 
         {/* Right Side: Frosted Glass Feedback Form */}
         <div className="glass-panel p-4 border border-border-color rounded-xl bg-white/2 text-left">

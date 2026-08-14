@@ -2,14 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import { Play, Pause, ChevronLeft, ChevronRight, RotateCcw, Lock, HelpCircle, Check, X, Coins } from "lucide-react";
 
 export default function SimulatorPanel({
-  userTier,
   simulationSteps,
   quizzes,
   activeStepIndex,
   setActiveStepIndex,
-  onOpenCheckout,
   isCustomCode
 }) {
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [changedVars, setChangedVars] = useState({});
   const [selectedAnswer, setSelectedAnswer] = useState(null);
@@ -129,32 +128,7 @@ export default function SimulatorPanel({
     }
   };
 
-  // Paid Premium Lock
-  if (userTier !== "premium") {
-    return (
-      <div className="flex flex-col items-center justify-center p-8 text-center flex-1 bg-black/10 rounded-lg border border-border-color mt-2.5">
-        <div className="bg-primary/10 text-primary p-3 rounded-full mb-3 flex">
-          <Lock size={28} />
-        </div>
-        <h3 className="text-base font-semibold mb-1.5">Unlock Step-by-Step Simulation</h3>
-        <p className="text-xs text-text-muted max-w-[300px] mb-4 leading-relaxed">
-          Watch code execute line-by-line in real-time, view local variable states, analyze the call stack, and practice visual dry-runs with active quizzes.
-        </p>
-        <div className="flex flex-col gap-2.5 w-full max-w-[260px]">
-          <button className="btn-primary justify-center" onClick={onOpenCheckout}>
-            <Coins size={16} />
-            <span>Unlock Premium (₹40/mo)</span>
-          </button>
-          <button className="btn-secondary justify-center" onClick={onOpenCheckout}>
-            <span>Buy 10 Tokens (₹10)</span>
-          </button>
-        </div>
-        <p className="text-[10px] text-text-dark mt-3">
-          * Free templates simulation. Custom code simulations cost 1 token.
-        </p>
-      </div>
-    );
-  }
+
 
   if (!simulationSteps || totalSteps === 0) {
     return (

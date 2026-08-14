@@ -1,22 +1,13 @@
 import { useState, useEffect } from "react";
-import { BarChart2, Zap, Play, Coins, User, Database, Languages } from "lucide-react";
+import { BarChart2, Zap, Play, User, Database, Languages, Share2, HelpCircle } from "lucide-react";
 import Header from "./components/Header";
 import EditorPanel from "./components/EditorPanel";
 import ChartViewer from "./components/ChartViewer";
 import OptimizerPanel from "./components/OptimizerPanel";
 import SimulatorPanel from "./components/SimulatorPanel";
 import ConverterPanel from "./components/ConverterPanel";
-import FeatureComparison from "./components/FeatureComparison";
 import Footer from "./components/Footer";
-import { mockAlgorithms } from "./mockData";
-import { mockTranslations } from "./mockConverterData";
-import {
-  mergeSortMockAnalysis,
-  binarySearchRecursiveMockAnalysis,
-  fibonacciMemoizedMockAnalysis,
-  twoSumOptimizedMockAnalysis
-} from "./mockCustomData";
-import { hasApiKey, analyzeCodeWithGemini, convertCodeWithGemini } from "./geminiService";
+import { analyzeCodeWithGemini, convertCodeWithGemini, explainCodeWithGemini } from "./geminiService";
 import { parseMarkdown } from "./utils/markdownParser";
 import { detectLanguage } from "./utils/langDetector";
 import { useToast } from "./context/ToastContext";
@@ -28,57 +19,68 @@ export default function App() {
   const {
     user,
     token,
+    register,
+    login,
     sendOtp,
     verifyOtp,
-    socialLogin,
+    updateProfile,
     logout,
     changePassword,
-    purchase,
-    handleDemoSetTier: demoSetTier,
-    deductSimToken
   } = useAuth();
 
-  const userTier = user ? user.tier : "anonymous";
-  const tokens = user ? user.tokens : 0;
   const userContact = user ? user.contact : null;
 
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem("BIGO_THEME") || "dark";
+    const saved = localStorage.getItem("BIGO_THEME");
+    return (saved === "desert" || saved === "rainy") ? saved : "desert";
   });
+
+
+  useEffect(() => {
+    localStorage.setItem("BIGO_THEME", theme);
+  }, [theme]);
 
   const [usersDb, setUsersDb] = useState([]);
   const [history, setHistory] = useState([]);
+  const [code, setCode] = useState(`// Write or paste your code here...\nfunction findMax(arr) {\n  let max = arr[0];\n  for (let i = 1; i < arr.length; i++) {\n    if (arr[i] > max) {\n      max = arr[i];\n    }\n  }\n  return max;\n}`);
 
-  const defaultAlgo = mockAlgorithms.find((a) => a.id === "bubble_sort") || {};
-
-  const [selectedTemplate, setSelectedTemplate] = useState("bubble_sort");
-  const [selectedLanguage, setSelectedLanguage] = useState(defaultAlgo.language || "auto");
-  const [code, setCode] = useState(defaultAlgo.code || "");
   const [activeTab, setActiveTab] = useState("complexity");
-  
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [checkoutOption, setCheckoutOption] = useState("subscription");
 
+  // Auth & Registration modal states
   const [showLogin, setShowLogin] = useState(false);
-  const [loginStep, setLoginStep] = useState("input");
+  const [authMode, setAuthMode] = useState("login"); // "login" | "signup" | "otp"
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [registerName, setRegisterName] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [registerConfirmPassword, setRegisterConfirmPassword] = useState("");
   const [contactInput, setContactInput] = useState("");
   const [otpInput, setOtpInput] = useState("");
   const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
 
   const [isAdminOpen, setIsAdminOpen] = useState(false);
 
+
   const [analysisResult, setAnalysisResult] = useState({
-    timeComplexity: defaultAlgo.timeComplexity || "O(N²)",
-    spaceComplexity: defaultAlgo.spaceComplexity || "O(1)",
-    explanation: defaultAlgo.explanation || "",
-    optimizedCode: defaultAlgo.optimizedCode || "",
-    optimizationExplanation: defaultAlgo.optimizationExplanation || "",
-    heatmap: defaultAlgo.heatmap || {},
-    simulation: defaultAlgo.simulation || [],
-    quiz: defaultAlgo.quiz || []
+    timeComplexity: "O(N)",
+    spaceComplexity: "O(1)",
+    explanation: "Linear scan through array of size N to find the maximum element.",
+    optimizedCode: "",
+    optimizationExplanation: "",
+    heatmap: { "1": "low", "2": "low", "3": "medium", "4": "high", "5": "medium", "8": "low" },
+    simulation: [
+      { line: 2, vars: { max: "arr[0]" }, explanation: "Initialize max variable with first element." },
+      { line: 3, vars: { i: "1", max: "arr[0]" }, explanation: "Start loop from index 1 to length - 1." },
+    ],
+    quiz: []
   });
+
+  const [plainExplanation, setPlainExplanation] = useState("This algorithm iterates through every item in the list once to find the largest value.");
+  const [isExplaining, setIsExplaining] = useState(false);
 
   const [convertedCode, setConvertedCode] = useState("");
   const [conversionExplanation, setConversionExplanation] = useState("");
@@ -90,7 +92,9 @@ export default function App() {
   useEffect(() => {
     setConvertedCode("");
     setConversionExplanation("");
-  }, [code, selectedLanguage, selectedTemplate]);
+  }, [code]);
+
+
 
   // Load history from API backend when user context becomes available
   useEffect(() => {
@@ -109,6 +113,65 @@ export default function App() {
     fetchHistory();
   }, [user]);
 
+  const [isSharing, setIsSharing] = useState(false);
+
+  // Check URL query param ?share=ID or path /share/:id on page load
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shareId = params.get("share") || window.location.pathname.split("/share/")[1];
+    if (shareId) {
+      client.get(`/share/${shareId}`)
+        .then(({ data }) => {
+          setCode(data.code);
+          setSelectedLanguage(data.language);
+          setSelectedTemplate("custom");
+          setAnalysisResult({
+            timeComplexity: data.timeComplexity,
+            spaceComplexity: data.spaceComplexity,
+            explanation: data.explanation,
+            optimizedCode: data.optimizedCode,
+            optimizationExplanation: data.optimizationExplanation,
+            heatmap: data.heatmap || {},
+            simulation: [],
+            quiz: []
+          });
+          showToast("Loaded shared code analysis!", "success");
+        })
+        .catch(() => {
+          showToast("Shared analysis link not found or expired.", "warning");
+        });
+    }
+  }, []);
+
+  const handleShareAnalysis = async () => {
+    if (!code || !code.trim()) {
+      showToast("Please enter code first before sharing.", "warning");
+      return;
+    }
+    setIsSharing(true);
+    try {
+      const { data } = await client.post("/share", {
+        code,
+        language: detectedLanguage,
+        timeComplexity: analysisResult.timeComplexity,
+        spaceComplexity: analysisResult.spaceComplexity,
+        explanation: analysisResult.explanation,
+        optimizedCode: analysisResult.optimizedCode,
+        optimizationExplanation: analysisResult.optimizationExplanation,
+        heatmap: analysisResult.heatmap,
+      });
+
+
+      const fullShareUrl = `${window.location.origin}/?share=${data.shortId}`;
+      await navigator.clipboard.writeText(fullShareUrl);
+      showToast("Shareable analysis link copied to clipboard!", "success");
+    } catch (err) {
+      showToast("Failed to generate share link.", "error");
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   // Load admin dashboard statistics and tables when opened
   useEffect(() => {
     const fetchAdminData = async () => {
@@ -126,10 +189,10 @@ export default function App() {
     fetchAdminData();
   }, [isAdminOpen, user]);
 
+
   // Derived state calculations
-  const detectedLanguage = (selectedLanguage === "auto" && code)
-    ? detectLanguage(code)
-    : selectedLanguage;
+  const detectedLanguage = code ? detectLanguage(code) : "javascript";
+
 
   const activeSimLine = (activeTab === "simulator" && analysisResult?.simulation?.length > 0)
     ? (analysisResult.simulation[activeStepIndex]?.line || null)
@@ -195,9 +258,10 @@ export default function App() {
         quiz: matchedAlgo.quiz
       });
       setActiveStepIndex(0);
-      if (userContact && userTier !== "anonymous") {
+      if (userContact) {
         addToHistory(matchedAlgo.timeComplexity, matchedAlgo.spaceComplexity, matchedAlgo);
       }
+
       return;
     }
     // 2. Default regex-based offline analyzer for arbitrary custom code
@@ -422,23 +486,18 @@ export default function App() {
     setAnalysisResult(mockResult);
     setActiveStepIndex(0);
     
-    if (userContact && userTier !== "anonymous") {
+    if (userContact) {
       addToHistory(time, space, mockResult);
     }
   };
 
   const addToHistory = async (timeComp, spaceComp, result, tokensUsed = 0) => {
-    let name;
-    if (selectedTemplate !== "custom") {
-      name = mockAlgorithms.find((a) => a.id === selectedTemplate)?.name || "Template";
-    } else {
-      const firstLine = code.trim().split("\n")[0];
-      name = firstLine.replace(new RegExp("[/#*|]", "g"), "").trim().substring(0, 20) || "Custom Code";
-    }
+    const firstLine = code.trim().split("\n")[0];
+    const name = firstLine.replace(new RegExp("[/#*|]", "g"), "").trim().substring(0, 24) || "Algorithm Sandbox";
 
     const payload = {
       name,
-      language: selectedLanguage === "auto" ? detectedLanguage : selectedLanguage,
+      language: detectedLanguage,
       timeComplexity: timeComp,
       spaceComplexity: spaceComp,
       code,
@@ -453,66 +512,53 @@ export default function App() {
 
     try {
       const { data } = await client.post("/history", payload);
-      const maxLogs = userTier === "premium" ? 30 : 20;
+      const maxLogs = 30;
       setHistory((prev) => [data, ...prev.slice(0, maxLogs - 1)]);
     } catch (err) {
       console.error("Failed to save history log", err);
     }
   };
 
+
   const handleAnalyze = async () => {
-    if (selectedTemplate !== "custom") {
-      const algo = mockAlgorithms.find((a) => a.id === selectedTemplate);
-      if (algo) {
-        setAnalysisResult({
-          timeComplexity: algo.timeComplexity,
-          spaceComplexity: algo.spaceComplexity,
-          explanation: algo.explanation,
-          optimizedCode: algo.optimizedCode,
-          optimizationExplanation: algo.optimizationExplanation,
-          heatmap: algo.heatmap,
-          simulation: algo.simulation,
-          quiz: algo.quiz
-        });
-        setActiveStepIndex(0);
-        
-        if (userContact && userTier !== "anonymous") {
-          addToHistory(algo.timeComplexity, algo.spaceComplexity, algo);
-        }
-      }
+    if (!code || !code.trim()) {
+      showToast("Please write or paste code to analyze.", "warning");
       return;
     }
 
     setIsAnalyzing(true);
+    setIsExplaining(true);
     
-    const targetLang = selectedLanguage === "auto" ? detectedLanguage : selectedLanguage;
+    const targetLang = detectLanguage(code);
 
-    if (hasApiKey()) {
-      try {
-        const res = await analyzeCodeWithGemini(code, targetLang);
-        setAnalysisResult(res);
-        setActiveStepIndex(0);
-        
-        if (userContact && userTier !== "anonymous") {
-          addToHistory(res.timeComplexity, res.spaceComplexity, res);
-        }
-        showToast("Gemini AI Analysis complete!", "success");
-      } catch (err) {
-        showToast("Failed to analyze with Gemini: " + err.message + "\n\nGenerating mock local analysis instead.", "warning");
-        loadMockCustomAnalysis();
-      } finally {
-        setIsAnalyzing(false);
+
+    try {
+      const res = await analyzeCodeWithGemini(code, targetLang);
+      setAnalysisResult(res);
+      setActiveStepIndex(0);
+      
+      if (userContact) {
+        addToHistory(res.timeComplexity, res.spaceComplexity, res);
       }
-    } else {
-      setTimeout(() => {
-        loadMockCustomAnalysis();
-        setIsAnalyzing(false);
-      }, 1200);
+      showToast("Gemini AI Analysis complete!", "success");
+
+      explainCodeWithGemini(code, targetLang)
+        .then((text) => setPlainExplanation(text))
+        .catch(() => setPlainExplanation("Code logic summary unavailable."))
+        .finally(() => setIsExplaining(false));
+
+    } catch (err) {
+      showToast("Failed to analyze code: " + err.message, "error");
+      setIsExplaining(false);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
+
   const handleConvert = async (targetLang) => {
-    const sourceLang = selectedLanguage === "auto" ? detectedLanguage : selectedLanguage;
+    const sourceLang = detectLanguage(code);
+
     
     if (sourceLang === targetLang) {
       showToast(`The code is already in ${targetLang.toUpperCase()}! Please select a different target language.`, "warning");
@@ -523,188 +569,27 @@ export default function App() {
     setConvertedCode("");
     setConversionExplanation("");
 
-    if (hasApiKey()) {
-      try {
-        const res = await convertCodeWithGemini(code, sourceLang, targetLang);
-        setConvertedCode(res.convertedCode);
-        setConversionExplanation(res.explanation);
-      } catch (err) {
-        showToast("Failed to convert with Gemini: " + err.message + "\n\nUsing mock local converter fallback.", "warning");
-        loadMockTranslation(sourceLang, targetLang);
-      } finally {
-        setIsConverting(false);
-      }
-    } else {
-      setTimeout(() => {
-        loadMockTranslation(sourceLang, targetLang);
-        setIsConverting(false);
-      }, 1200);
+    try {
+      const res = await convertCodeWithGemini(code, sourceLang, targetLang);
+      setConvertedCode(res.convertedCode);
+      setConversionExplanation(res.explanation);
+      showToast("Code conversion complete!", "success");
+    } catch (err) {
+      showToast("Failed to convert code: " + err.message, "error");
+    } finally {
+      setIsConverting(false);
     }
   };
-
-  const translateCodeBasic = (sourceCode, src, dest) => {
-    let lines = sourceCode.split("\n");
-    let translatedLines = [];
-    let explanation = `Translated code from ${src.toUpperCase()} to ${dest.toUpperCase()} using BigO.ai's offline rule-based converter. (Connect a Gemini API Key in Settings for full semantic, AI-powered translation).`;
-
-    for (let line of lines) {
-      let tLine = line;
-
-      // ── Translate Loops ──────────────────────────────────────────────────
-      if (dest === "python") {
-        tLine = tLine.replace(/for\s*\(\s*(?:let|int|var)\s+(\w+)\s*=\s*0\s*;\s*\1\s*<\s*([^;]+)\s*;\s*\1\s*\+\+\s*\)\s*\{?/, "for $1 in range($2):");
-        tLine = tLine.replace(/for\s*\(\s*(?:let|int|var)\s+(\w+)\s*=\s*([^;]+)\s*;\s*\1\s*<\s*([^;]+)\s*;\s*\1\s*\+\+\s*\)\s*\{?/, "for $1 in range($2, $3):");
-      } else if (dest === "rust") {
-        tLine = tLine.replace(/for\s*\(\s*(?:let|int|var)\s+(\w+)\s*=\s*0\s*;\s*\1\s*<\s*([^;]+)\s*;\s*\1\s*\+\+\s*\)\s*\{?/, "for $1 in 0..$2 {");
-        tLine = tLine.replace(/for\s*\(\s*(?:let|int|var)\s+(\w+)\s*=\s*([^;]+)\s*;\s*\1\s*<\s*([^;]+)\s*;\s*\1\s*\+\+\s*\)\s*\{?/, "for $1 in $2..$3 {");
-      } else if (dest === "javascript" || dest === "java" || dest === "cpp") {
-        const type = dest === "javascript" ? "let" : "int";
-        tLine = tLine.replace(/for\s+(\w+)\s+in\s+range\s*\(\s*([^,)]+)\s*\)\s*:/, `for (${type} $1 = 0; $1 < $2; $1++) {`);
-        tLine = tLine.replace(/for\s+(\w+)\s+in\s+range\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)\s*:/, `for (${type} $1 = $2; $1 < $3; $1++) {`);
-      }
-
-      // ── Translate Prints ─────────────────────────────────────────────────
-      if (dest === "python") {
-        tLine = tLine.replace(/console\.log\s*\(([^)]+)\)/, "print($1)");
-        tLine = tLine.replace(/System\.out\.println\s*\(([^)]+)\)/, "print($1)");
-        tLine = tLine.replace(/std::cout\s*<<\s*([^<]+)\s*<<\s*std::endl;?/, "print($1)");
-        tLine = tLine.replace(/println!\s*\(([^)]+)\)/, "print($1)");
-      } else if (dest === "javascript") {
-        tLine = tLine.replace(/print\s*\(([^)]+)\)/, "console.log($1)");
-        tLine = tLine.replace(/System\.out\.println\s*\(([^)]+)\)/, "console.log($1)");
-        tLine = tLine.replace(/std::cout\s*<<\s*([^<]+)\s*<<\s*std::endl;?/, "console.log($1)");
-        tLine = tLine.replace(/println!\s*\(([^)]+)\)/, "console.log($1)");
-      } else if (dest === "java") {
-        tLine = tLine.replace(/console\.log\s*\(([^)]+)\)/, "System.out.println($1)");
-        tLine = tLine.replace(/print\s*\(([^)]+)\)/, "System.out.println($1)");
-        tLine = tLine.replace(/std::cout\s*<<\s*([^<]+)\s*<<\s*std::endl;?/, "System.out.println($1)");
-        tLine = tLine.replace(/println!\s*\(([^)]+)\)/, "System.out.println($1)");
-      } else if (dest === "cpp") {
-        tLine = tLine.replace(/console\.log\s*\(([^)]+)\)/, "std::cout << $1 << std::endl;");
-        tLine = tLine.replace(/print\s*\(([^)]+)\)/, "std::cout << $1 << std::endl;");
-        tLine = tLine.replace(/System\.out\.println\s*\(([^)]+)\)/, "std::cout << $1 << std::endl;");
-        tLine = tLine.replace(/println!\s*\(([^)]+)\)/, "std::cout << $1 << std::endl;");
-      } else if (dest === "rust") {
-        tLine = tLine.replace(/console\.log\s*\(([^)]+)\)/, "println!($1)");
-        tLine = tLine.replace(/print\s*\(([^)]+)\)/, "println!($1)");
-        tLine = tLine.replace(/System\.out\.println\s*\(([^)]+)\)/, "println!($1)");
-        tLine = tLine.replace(/std::cout\s*<<\s*([^<]+)\s*<<\s*std::endl;?/, "println!($1)");
-      }
-
-      // ── Translate Variables/Constants ───────────────────────────────────
-      if (dest === "python") {
-        tLine = tLine.replace(/(?:let|const|var|int|double|float|String|boolean)\s+(\w+)\s*=\s*([^;]+);?/, "$1 = $2");
-      } else if (dest === "rust") {
-        tLine = tLine.replace(/(?:let|const|var|int|double|float|String|boolean)\s+(\w+)\s*=\s*([^;]+);?/, "let mut $1 = $2;");
-      } else if (dest === "javascript") {
-        tLine = tLine.replace(/(?:int|double|float|String|boolean)\s+(\w+)\s*=\s*([^;]+);?/, "let $1 = $2;");
-      } else if (dest === "java" || dest === "cpp") {
-        tLine = tLine.replace(/(?:let|const|var)\s+(\w+)\s*=\s*(\d+);?/, "int $1 = $2;");
-        tLine = tLine.replace(/(?:let|const|var)\s+(\w+)\s*=\s*["']([^"']*)["'];?/, "String $1 = \"$2\";");
-      }
-
-      // ── Translate Functions ──────────────────────────────────────────────
-      if (dest === "python") {
-        tLine = tLine.replace(/function\s+(\w+)\s*\(([^)]*)\)\s*\{?/, "def $1($2):");
-        tLine = tLine.replace(/const\s+(\w+)\s*=\s*\(([^)]*)\)\s*=>\s*\{?/, "def $1($2):");
-        tLine = tLine.replace(/public\s+(?:static\s+)?(?:\w+)\s+(\w+)\s*\(([^)]*)\)\s*\{?/, "def $1($2):");
-        tLine = tLine.replace(/fn\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*\w+)?\s*\{?/, "def $1($2):");
-      } else if (dest === "rust") {
-        tLine = tLine.replace(/function\s+(\w+)\s*\(([^)]*)\)\s*\{?/, "fn $1($2) {");
-        tLine = tLine.replace(/def\s+(\w+)\s*\(([^)]*)\)\s*:/, "fn $1($2) {");
-      } else if (dest === "javascript") {
-        tLine = tLine.replace(/def\s+(\w+)\s*\(([^)]*)\)\s*:/, "function $1($2) {");
-        tLine = tLine.replace(/fn\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*\w+)?\s*\{?/, "function $1($2) {");
-      } else if (dest === "java" || dest === "cpp") {
-        tLine = tLine.replace(/def\s+(\w+)\s*\(([^)]*)\)\s*:/, "void $1($2) {");
-        tLine = tLine.replace(/function\s+(\w+)\s*\(([^)]*)\)\s*\{?/, "void $1($2) {");
-        tLine = tLine.replace(/fn\s+(\w+)\s*\(([^)]*)\)\s*(?:->\s*\w+)?\s*\{?/, "void $1($2) {");
-      }
-
-      if (dest === "python") {
-        tLine = tLine.replace(/\}\s*$/, "");
-      }
-
-      translatedLines.push(tLine);
-    }
-
-    let codeStr = translatedLines.join("\n");
-    if (dest === "python") {
-      codeStr = codeStr.replace(/\n\s*\n/g, "\n");
-    }
-
-    return { code: codeStr, explanation };
-  };
-
-  const loadMockTranslation = (sourceLang, targetLang) => {
-    if (selectedTemplate === "custom") {
-      const basic = translateCodeBasic(code, sourceLang, targetLang);
-      setConvertedCode(basic.code);
-      setConversionExplanation(basic.explanation);
-      return;
-    }
-
-    // Load from mockTranslations data
-    const algoTranslations = mockTranslations[selectedTemplate];
-    if (algoTranslations && algoTranslations[targetLang]) {
-      setConvertedCode(algoTranslations[targetLang].convertedCode);
-      setConversionExplanation(algoTranslations[targetLang].explanation);
-    } else {
-      setConvertedCode(`// Mock Translation fallback for template: ${selectedTemplate} to ${targetLang}\n// To perform this conversion, please connect a Gemini API Key in the Settings.`);
-      setConversionExplanation("This template does not have a pre-defined offline mapping for the selected target language. Save a Gemini API Key in the settings for dynamic translation.");
-    }
-  };
-
 
   const handleSimulateTrigger = () => {
-    if (userTier !== "premium") {
-      showToast("Execution simulation is a Paid Feature. Choose a payment package to continue.", "info");
-      setShowCheckout(true);
+    if (!analysisResult.simulation || analysisResult.simulation.length === 0) {
+      showToast("Please run 'Analyze Complexity' first before simulating.", "warning");
       return;
     }
-
-    const isCustom = selectedTemplate === "custom";
-    if (isCustom) {
-      if (!analysisResult.simulation || analysisResult.simulation.length === 0) {
-        showToast("Please run 'Analyze Complexity' first before simulating.", "warning");
-        return;
-      }
-      if (tokens <= 0) {
-        showToast("You have run out of simulation tokens! Please purchase more tokens.", "warning");
-        setShowCheckout(true);
-        return;
-      }
-      
-      // Deduct simulation token asynchronously from backend
-      deductSimToken().then((success) => {
-        if (success) {
-          // If we have history logs, mark the first one as tokensUsed = 1
-          if (history.length > 0) {
-            const firstLog = history[0];
-            if (firstLog && firstLog._id) {
-              client.patch(`/history/${firstLog._id}/tokensUsed`).catch(err => {
-                console.error("Failed to persist tokensUsed in history:", err);
-              });
-            }
-            setHistory((prev) => {
-              if (prev.length > 0) {
-                const updated = [...prev];
-                updated[0] = { ...updated[0], tokensUsed: 1 };
-                return updated;
-              }
-              return prev;
-            });
-          }
-          setActiveTab("simulator");
-          setActiveStepIndex(0);
-        }
-      });
-      return;
-    }
-
     setActiveTab("simulator");
     setActiveStepIndex(0);
   };
+
 
   const handlePurchase = async () => {
     if (!userContact) {
@@ -720,6 +605,48 @@ export default function App() {
     }
   };
 
+  const handlePasswordLogin = async (e) => {
+    e?.preventDefault();
+    if (!loginEmail.trim() || !loginPassword.trim()) {
+      showToast("Please enter both email and password.", "warning");
+      return;
+    }
+    setIsSubmittingAuth(true);
+    const success = await login(loginEmail.trim(), loginPassword);
+    setIsSubmittingAuth(false);
+    if (success) {
+      setShowLogin(false);
+      setLoginEmail("");
+      setLoginPassword("");
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e?.preventDefault();
+    if (!registerEmail.trim() || !registerPassword.trim()) {
+      showToast("Please enter email and password.", "warning");
+      return;
+    }
+    if (registerPassword !== registerConfirmPassword) {
+      showToast("Passwords do not match.", "warning");
+      return;
+    }
+    if (registerPassword.length < 6) {
+      showToast("Password must be at least 6 characters.", "warning");
+      return;
+    }
+    setIsSubmittingAuth(true);
+    const success = await register(registerName.trim(), registerEmail.trim(), registerPassword);
+    setIsSubmittingAuth(false);
+    if (success) {
+      setShowLogin(false);
+      setRegisterName("");
+      setRegisterEmail("");
+      setRegisterPassword("");
+      setRegisterConfirmPassword("");
+    }
+  };
+
   const handleSendOtp = async () => {
     if (!contactInput.trim()) {
       showToast("Please enter a valid email address or mobile number.", "warning");
@@ -730,9 +657,10 @@ export default function App() {
     const success = await sendOtp(contactInput.trim());
     setIsSendingOtp(false);
     if (success) {
-      setLoginStep("otp");
+      setAuthMode("otp-verify");
     }
   };
+
 
   const handleSocialLogin = async (provider) => {
     setIsSendingOtp(true);
@@ -846,17 +774,16 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen gap-4 p-4 max-w-[1550px] mx-auto w-full">
+    <div className={`flex flex-col min-h-screen gap-4 p-4 max-w-[1550px] mx-auto w-full ${theme === "rainy" ? "rainy-theme" : "desert-theme"}`}>
+
       <Header
-        userTier={userTier}
-        setUserTier={handleDemoSetTier}
-        tokens={tokens}
-        onOpenCheckout={() => setShowCheckout(true)}
+        user={user}
         theme={theme}
+
         setTheme={setTheme}
         userContact={userContact}
         onOpenLogin={() => {
-          setLoginStep("input");
+          setAuthMode("login");
           setShowLogin(true);
         }}
         onLogout={handleLogout}
@@ -864,86 +791,68 @@ export default function App() {
         onLoadHistory={handleLoadHistory}
         onDeleteHistory={handleDeleteHistory}
         onChangePassword={handleChangePassword}
+        onUpdateProfile={updateProfile}
         usersDb={usersDb}
       />
 
-      {/* Main Split Layout: Full width Editor/Tab/Comparison */}
+
+      {/* Main Split Layout: Full width Editor/Tab */}
       <div className="grid gap-4 items-start grid-cols-1">
-        {/* Left Column: Sandbox tools + Feature Matrix */}
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-4 max-lg:grid-cols-1">
-
 
           {/* Editor Sandbox Panel */}
           <EditorPanel
             code={code}
             setCode={setCode}
-            selectedLanguage={selectedLanguage}
-            setSelectedLanguage={setSelectedLanguage}
-            selectedTemplate={selectedTemplate}
-            setSelectedTemplate={setSelectedTemplate}
-            userTier={userTier}
             onAnalyze={handleAnalyze}
             onSimulate={handleSimulateTrigger}
             isAnalyzing={isAnalyzing}
-            activeSimLine={activeSimLine}
-            heatmapData={analysisResult.heatmap}
-            showHeatmap={userTier !== "anonymous"}
             detectedLanguage={detectedLanguage}
-            hasApiKey={hasApiKey()}
           />
+
+
 
           {/* Analysis Tab Panel */}
           <div className="glass-panel flex flex-col h-[630px]">
             <div className="flex border-b border-border-color bg-white/1 rounded-t-xl">
               <button
-                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-[13px] font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main relative ${
+                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-[13px] font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main ${
                   activeTab === "complexity" ? "text-primary border-primary font-semibold bg-primary/3" : ""
                 }`}
                 onClick={() => setActiveTab("complexity")}
               >
                 <BarChart2 size={14} />
                 <span>Complexity</span>
-                <span className="absolute top-1 right-2 text-[7.5px] font-bold tracking-wider uppercase opacity-65 text-text-dark">
-                  Free
-                </span>
               </button>
               <button
-                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-[13px] font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main relative ${
+                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-[13px] font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main ${
                   activeTab === "converter" ? "text-primary border-primary font-semibold bg-primary/3" : ""
                 }`}
                 onClick={() => setActiveTab("converter")}
               >
                 <Languages size={14} />
                 <span>Converter</span>
-                <span className="absolute top-1 right-2 text-[7.5px] font-bold tracking-wider uppercase opacity-65 text-text-dark">
-                  Free
-                </span>
               </button>
               <button
-                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-[13px] font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main relative ${
+                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-[13px] font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main ${
                   activeTab === "optimizer" ? "text-primary border-primary font-semibold bg-primary/3" : ""
                 }`}
                 onClick={() => setActiveTab("optimizer")}
               >
                 <Zap size={14} />
                 <span>AI Optimizer</span>
-                <span className="absolute top-1 right-2 text-[7.5px] font-bold tracking-wider uppercase opacity-75 text-primary animate-pulse">
-                  Sign-In
-                </span>
               </button>
               <button
-                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-[13px] font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main relative ${
+                className={`flex-1 bg-transparent border-b-2 border-transparent text-text-muted cursor-pointer text-[13px] font-medium py-3 flex items-center justify-center gap-1.5 transition-all duration-200 hover:text-text-main ${
                   activeTab === "simulator" ? "text-primary border-primary font-semibold bg-primary/3" : ""
                 }`}
                 onClick={() => setActiveTab("simulator")}
               >
                 <Play size={14} />
                 <span>Simulator</span>
-                <span className="absolute top-1 right-2 text-[7.5px] font-bold tracking-wider uppercase opacity-85 text-accent-purple dark:text-accent-purple/90">
-                  Pro
-                </span>
               </button>
+
             </div>
 
             {isAnalyzing ? (
@@ -966,15 +875,40 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="flex-1 bg-white/3 border border-secondary/20 rounded-lg p-2.5 flex items-center gap-2.5">
-                        <div className="bg-secondary/10 text-secondary rounded-lg p-1.5 flex">
-                          <BarChart2 size={18} />
+                      <div className="flex-1 bg-white/3 border border-secondary/20 rounded-lg p-2.5 flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="bg-secondary/10 text-secondary rounded-lg p-1.5 flex">
+                            <BarChart2 size={18} />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] text-text-muted uppercase">Space Complexity</span>
+                            <span className="text-base font-bold text-secondary font-mono">{analysisResult.spaceComplexity}</span>
+                          </div>
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-[10px] text-text-muted uppercase">Space Complexity</span>
-                          <span className="text-base font-bold text-secondary font-mono">{analysisResult.spaceComplexity}</span>
-                        </div>
+                        <button
+                          onClick={handleShareAnalysis}
+                          disabled={isSharing}
+                          className="bg-white/5 hover:bg-white/10 border border-border-color text-text-main px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-40"
+                          title="Generate a public shareable link for this analysis"
+                        >
+                          <Share2 size={13} className="text-primary" />
+                          <span>{isSharing ? "Sharing..." : "Share Link"}</span>
+                        </button>
                       </div>
+                    </div>
+
+
+                    {/* Plain English "What does this code do?" Card */}
+                    <div className="bg-white/3 border border-primary/20 rounded-lg p-3 flex flex-col gap-1.5 text-left">
+                      <div className="flex items-center gap-1.5 text-primary text-xs font-bold uppercase tracking-wider">
+                        <HelpCircle size={14} />
+                        <span>What does this code do? (Plain English)</span>
+                      </div>
+                      {isExplaining ? (
+                        <div className="text-xs text-text-muted animate-pulse">Summarizing code logic into plain English...</div>
+                      ) : (
+                        <p className="text-xs text-text-main leading-relaxed m-0">{plainExplanation}</p>
+                      )}
                     </div>
 
                     <div className="text-text-muted text-[13.5px] leading-relaxed">
@@ -982,68 +916,55 @@ export default function App() {
                     </div>
 
                     <ChartViewer timeComplexity={analysisResult.timeComplexity} />
-                    {/* Feature comparison matrix moved to bottom of page */}
                   </div>
-
                 )}
+
 
                 {activeTab === "optimizer" && (
                   <OptimizerPanel
-                    userTier={userTier}
                     originalCode={code}
                     optimizedCode={analysisResult.optimizedCode}
                     explanation={analysisResult.optimizationExplanation}
                     timeComplexity={analysisResult.timeComplexity}
                     spaceComplexity={analysisResult.spaceComplexity}
-                    onSignUp={() => {
-                      setLoginStep("input");
-                      setShowLogin(true);
-                    }}
                   />
                 )}
 
                 {activeTab === "simulator" && (
                   <SimulatorPanel
-                    userTier={userTier}
                     simulationSteps={analysisResult.simulation}
                     quizzes={analysisResult.quiz}
                     activeStepIndex={activeStepIndex}
                     setActiveStepIndex={setActiveStepIndex}
-                    onOpenCheckout={() => setShowCheckout(true)}
-                    isCustomCode={selectedTemplate === "custom"}
+                    isCustomCode={true}
                   />
                 )}
 
                 {activeTab === "converter" && (
                   <ConverterPanel
-                    userTier={userTier}
                     originalCode={code}
                     convertedCode={convertedCode}
                     explanation={conversionExplanation}
                     isConverting={isConverting}
                     onConvert={handleConvert}
-                    onSignUp={() => {
-                      setLoginStep("input");
-                      setShowLogin(true);
-                    }}
                   />
                 )}
+
               </div>
             )}
           </div>
 
         </div>
-
-        {/* Feature Comparison Matrix - aligned to left column width */}
-        <FeatureComparison userTier={userTier} />
       </div>
     </div>
 
 
 
+
         {/* Collapsible Admin User Management Drawer */}
-        {window.location.search.includes("admin=true") && (
+        {(user?.isAdmin || (typeof window !== "undefined" && window.location.search.includes("admin=true"))) && (
           <div className="mt-4 border-t border-border-color pt-4">
+
             <div className="flex justify-between items-center p-2 px-3 bg-white/2 border border-border-color rounded-lg">
               <div className="flex items-center gap-4 text-[13px] font-semibold text-text-main">
                 <div 
@@ -1201,7 +1122,7 @@ export default function App() {
 
 
 
-      {/* OTP Authentication Modal */}
+      {/* Complete Integrated Auth Modal (Log In, Sign Up, Quick OTP) */}
       {showLogin && (
         <div 
           className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
@@ -1211,173 +1132,233 @@ export default function App() {
             className="bg-bg-main border border-border-color rounded-xl w-full max-w-[440px] shadow-glass-shadow overflow-hidden text-left"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-3 px-4 border-b border-border-color flex justify-between items-center">
+            {/* Modal Header */}
+            <div className="p-3 px-4 border-b border-border-color flex justify-between items-center bg-white/2">
               <h3 className="flex items-center gap-2 text-sm font-semibold text-text-main">
                 <User size={18} className="text-primary" />
-                <span>Verification Login Portal</span>
+                <span>Account Authentication</span>
               </h3>
-              <button className="bg-transparent border-none text-text-muted cursor-pointer hover:text-text-main" onClick={() => setShowLogin(false)}>
+              <button className="bg-transparent border-none text-text-muted cursor-pointer hover:text-text-main text-sm" onClick={() => setShowLogin(false)}>
                 ✕
               </button>
             </div>
+
+            {/* Mode Switcher Tabs */}
+            <div className="flex border-b border-border-color bg-black/10">
+              <button
+                className={`flex-1 py-2.5 text-xs font-semibold cursor-pointer border-b-2 transition-all ${
+                  authMode === "login" ? "text-primary border-primary bg-primary/5" : "text-text-muted border-transparent hover:text-text-main"
+                }`}
+                onClick={() => setAuthMode("login")}
+              >
+                🔑 Log In
+              </button>
+              <button
+                className={`flex-1 py-2.5 text-xs font-semibold cursor-pointer border-b-2 transition-all ${
+                  authMode === "signup" ? "text-primary border-primary bg-primary/5" : "text-text-muted border-transparent hover:text-text-main"
+                }`}
+                onClick={() => setAuthMode("signup")}
+              >
+                ✨ Sign Up
+              </button>
+              <button
+                className={`flex-1 py-2.5 text-xs font-semibold cursor-pointer border-b-2 transition-all ${
+                  authMode === "otp" || authMode === "otp-verify" ? "text-primary border-primary bg-primary/5" : "text-text-muted border-transparent hover:text-text-main"
+                }`}
+                onClick={() => setAuthMode("otp")}
+              >
+                ⚡ Quick OTP
+              </button>
+            </div>
             
-            <div className="p-4">
-              {loginStep === "input" ? (
-                <>
-                  <p className="text-text-muted text-xs leading-relaxed mb-3">
-                    Enter your email address or mobile phone number. A 4-digit verification code will be simulated.
+            <div className="p-5">
+              {/* TAB 1: LOGIN */}
+              {authMode === "login" && (
+                <form onSubmit={handlePasswordLogin} className="flex flex-col gap-3">
+                  <p className="text-text-muted text-xs leading-relaxed mb-1">
+                    Log in with your email address and password.
                   </p>
-                  <div className="flex flex-col gap-1.5 mb-3">
-                    <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Email or Phone Number</label>
+                  
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Email Address</label>
+                    <input
+                      type="email"
+                      required
+                      className="bg-black/20 border border-border-color rounded-md p-2 text-text-main outline-none text-xs focus:border-primary"
+                      placeholder="e.g. dev@bigo.ai"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Password</label>
+                    <input
+                      type="password"
+                      required
+                      className="bg-black/20 border border-border-color rounded-md p-2 text-text-main outline-none text-xs focus:border-primary"
+                      placeholder="••••••••"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex justify-between items-center mt-3">
+                    <button
+                      type="button"
+                      className="text-[11px] text-primary hover:underline bg-transparent border-none cursor-pointer p-0"
+                      onClick={() => setAuthMode("otp")}
+                    >
+                      Forgot password? Use OTP
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmittingAuth}
+                      className="bg-gradient-to-r from-primary to-secondary text-white px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-40 shadow-md shadow-primary/25 border-none"
+                    >
+                      {isSubmittingAuth ? "Logging In..." : "Log In"}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* TAB 2: SIGN UP */}
+              {authMode === "signup" && (
+                <form onSubmit={handleRegister} className="flex flex-col gap-3">
+                  <p className="text-text-muted text-xs leading-relaxed mb-1">
+                    Create a free account to unlock profile management & saved history logs.
+                  </p>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Full Name</label>
                     <input
                       type="text"
                       className="bg-black/20 border border-border-color rounded-md p-2 text-text-main outline-none text-xs focus:border-primary"
-                      placeholder="e.g. dev@bigo.ai or +919999988888"
+                      placeholder="e.g. Alex Rivera"
+                      value={registerName}
+                      onChange={(e) => setRegisterName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Email Address</label>
+                    <input
+                      type="email"
+                      required
+                      className="bg-black/20 border border-border-color rounded-md p-2 text-text-main outline-none text-xs focus:border-primary"
+                      placeholder="e.g. alex@example.com"
+                      value={registerEmail}
+                      onChange={(e) => setRegisterEmail(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Password</label>
+                      <input
+                        type="password"
+                        required
+                        className="bg-black/20 border border-border-color rounded-md p-2 text-text-main outline-none text-xs focus:border-primary"
+                        placeholder="Min 6 chars"
+                        value={registerPassword}
+                        onChange={(e) => setRegisterPassword(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Confirm</label>
+                      <input
+                        type="password"
+                        required
+                        className="bg-black/20 border border-border-color rounded-md p-2 text-text-main outline-none text-xs focus:border-primary"
+                        placeholder="Re-enter password"
+                        value={registerConfirmPassword}
+                        onChange={(e) => setRegisterConfirmPassword(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 mt-3">
+                    <button
+                      type="submit"
+                      disabled={isSubmittingAuth}
+                      className="bg-gradient-to-r from-primary to-secondary text-white px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-40 shadow-md shadow-primary/25 border-none"
+                    >
+                      {isSubmittingAuth ? "Creating Account..." : "Create Account"}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* TAB 3: QUICK EMAIL OTP */}
+              {authMode === "otp" && (
+                <div className="flex flex-col gap-3">
+                  <p className="text-text-muted text-xs leading-relaxed mb-1">
+                    Passwordless instant login. Enter your email address to receive a 4-digit verification code.
+                  </p>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Email Address</label>
+                    <input
+                      type="text"
+                      className="bg-black/20 border border-border-color rounded-md p-2 text-text-main outline-none text-xs focus:border-primary"
+                      placeholder="e.g. dev@bigo.ai"
                       value={contactInput}
                       onChange={(e) => setContactInput(e.target.value)}
                     />
                   </div>
-                  <div className="flex justify-end gap-2 mt-4">
-                    <button className="bg-white/5 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15" onClick={() => setShowLogin(false)}>
-                      Cancel
-                    </button>
-                    <button className="bg-gradient-to-r from-primary to-secondary text-white px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-40" onClick={handleSendOtp} disabled={isSendingOtp}>
-                      {isSendingOtp ? "Generating Code..." : "Send OTP"}
-                    </button>
-                  </div>
-
-                  {/* OR Divider */}
-                  <div className="flex items-center gap-2 my-4">
-                    <span className="h-[1px] bg-border-color flex-1" />
-                    <span className="text-[9px] text-text-dark uppercase font-bold tracking-wider">Or Connect With</span>
-                    <span className="h-[1px] bg-border-color flex-1" />
-                  </div>
-
-                  {/* Social buttons */}
-                  <div className="flex flex-col gap-2">
-                    <button 
-                      onClick={() => handleSocialLogin("Google")}
-                      className="w-full bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer hover:bg-gray-500/15 transition-all flex items-center justify-center gap-2"
+                  <div className="flex justify-end gap-2 mt-3">
+                    <button
+                      className="bg-gradient-to-r from-primary to-secondary text-white px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-40 border-none shadow-md shadow-primary/25"
+                      onClick={handleSendOtp}
+                      disabled={isSendingOtp}
                     >
-                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
-                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
-                      </svg>
-                      <span>Sign in with Google</span>
-                    </button>
-
-                    <button 
-                      onClick={() => handleSocialLogin("GitHub")}
-                      className="w-full bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer hover:bg-gray-500/15 transition-all flex items-center justify-center gap-2"
-                    >
-                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                        <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482C19.138 20.193 22 16.44 22 12.017 22 6.484 17.522 2 12 2z" />
-                      </svg>
-                      <span>Sign in with GitHub</span>
+                      {isSendingOtp ? "Sending OTP..." : "Send OTP Code"}
                     </button>
                   </div>
-                </>
-              ) : (
-                <>
-                  <p className="text-text-muted text-xs leading-relaxed mb-3">
-                    OTP sent to <strong>{contactInput}</strong>! Enter the 4-digit verification code to log in.
+                </div>
+              )}
+
+              {/* OTP VERIFY STEP */}
+              {authMode === "otp-verify" && (
+                <div className="flex flex-col gap-3">
+                  <p className="text-text-muted text-xs leading-relaxed mb-1">
+                    OTP sent to <strong>{contactInput}</strong>! Enter the 4-digit code to log in.
                   </p>
-                  <div className="flex flex-col gap-1.5 mb-3">
-                    <label className="text-[10px] font-semibold text-accent-yellow uppercase tracking-wider">4-Digit Code</label>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold text-accent-yellow uppercase tracking-wider">4-Digit Verification Code</label>
                     <input
                       type="text"
                       maxLength="4"
                       className="bg-black/20 border border-border-color rounded-md p-2 text-text-main outline-none text-base text-center tracking-[8px] font-mono focus:border-primary"
-                      placeholder="1234"
+                      placeholder="e.g. 8492"
                       value={otpInput}
                       onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ""))}
                     />
                   </div>
-                  <p className="text-[11px] text-accent-green leading-relaxed">
-                    💡 Pro-Tip: Enter <strong>1234</strong> (or any code) to simulate successful OTP verification!
-                  </p>
-                  <div className="flex justify-end gap-2 mt-4">
-                    <button className="bg-white/5 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15" onClick={() => setLoginStep("input")}>
-                      Back
+                  <div className="flex justify-between items-center mt-3">
+                    <button
+                      className="text-xs text-text-muted hover:text-text-main bg-transparent border-none cursor-pointer p-0"
+                      onClick={() => setAuthMode("otp")}
+                    >
+                      ← Back
                     </button>
-                    <button className="bg-gradient-to-r from-primary to-secondary text-white px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer" onClick={handleVerifyOtp}>
+                    <button
+                      className="bg-gradient-to-r from-primary to-secondary text-white px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer border-none shadow-md shadow-primary/25"
+                      onClick={handleVerifyOtp}
+                    >
                       Verify & Log In
                     </button>
                   </div>
-                </>
+                </div>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Checkout Modal */}
-      {showCheckout && (
-        <div 
-          className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
-          onClick={() => setShowCheckout(false)}
-        >
-          <div 
-            className="bg-bg-main border border-border-color rounded-xl w-full max-w-[440px] shadow-glass-shadow overflow-hidden text-left"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-3 px-4 border-b border-border-color flex justify-between items-center">
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-text-main">
-                <Coins size={18} className="text-accent-yellow" />
-                <span>Unlock Advanced Features</span>
-              </h3>
-              <button className="bg-transparent border-none text-text-muted cursor-pointer hover:text-text-main" onClick={() => setShowCheckout(false)}>
-                ✕
-              </button>
-            </div>
-            
-            <div className="p-4">
-              <p className="text-text-muted text-xs leading-relaxed mb-4">
-                Select a payment package to continue. Enjoy unrestricted access to step-by-step logic simulator.
-              </p>
-
-              <div className="flex flex-col gap-3">
-                <div
-                  className={`border border-border-color rounded-lg p-3 flex justify-between items-center cursor-pointer transition-all duration-200 ${
-                    checkoutOption === "subscription" ? "border-primary bg-primary/5 shadow-sm shadow-primary/10" : "bg-white/1"
-                  }`}
-                  onClick={() => setCheckoutOption("subscription")}
-                >
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[13px] font-semibold text-text-main">1 Month Premium Access</span>
-                    <span className="text-[11px] text-text-muted">Includes 70 custom simulation tokens + infinite template runs</span>
-                  </div>
-                  <span className="text-sm font-bold text-accent-yellow">₹40</span>
-                </div>
-
-                <div
-                  className={`border border-border-color rounded-lg p-3 flex justify-between items-center cursor-pointer transition-all duration-200 ${
-                    checkoutOption === "tokens" ? "border-primary bg-primary/5 shadow-sm shadow-primary/10" : "bg-white/1"
-                  }`}
-                  onClick={() => setCheckoutOption("tokens")}
-                >
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[13px] font-semibold text-text-main">Buy 10 Tokens Pack</span>
-                    <span className="text-[11px] text-text-muted">Custom inputs simulation (₹1 per simulation)</span>
-                  </div>
-                  <span className="text-sm font-bold text-accent-yellow">₹10</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-3 px-4 border-t border-border-color flex justify-end gap-2 bg-black/5">
-              <button className="bg-white/5 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15" onClick={() => setShowCheckout(false)}>
-                Cancel
-              </button>
-              <button className="bg-gradient-to-r from-primary to-secondary text-white px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer" onClick={handlePurchase}>
-                Proceed to Pay
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
+
+

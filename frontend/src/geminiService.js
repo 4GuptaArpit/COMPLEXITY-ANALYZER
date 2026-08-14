@@ -1,25 +1,19 @@
 // Service to make calls to the Gemini API for code complexity analysis and simulation traces.
 
-export const hasApiKey = () => {
-  const localKey = localStorage.getItem("BIGO_GEMINI_API_KEY");
-  const envKey = import.meta.env.VITE_GEMINI_API_KEY;
-  return !!(localKey || (envKey && envKey !== "YOUR_API_KEY_HERE"));
+const sanitizeJsonResponse = (text) => {
+  if (!text) return "";
+  let clean = text.trim();
+  // Strip starting ```json or ```
+  clean = clean.replace(/^```(?:json)?\s*/i, "");
+  // Strip ending ```
+  clean = clean.replace(/\s*```$/i, "");
+  return clean.trim();
 };
 
-export const getApiKey = () => {
-  const localKey = localStorage.getItem("BIGO_GEMINI_API_KEY");
-  if (localKey) return localKey;
-  const envKey = import.meta.env.VITE_GEMINI_API_KEY;
+const getKeyForFeature = (featureKey) => {
+  const envKey = import.meta.env[featureKey] || import.meta.env.VITE_GEMINI_API_KEY;
   if (envKey && envKey !== "YOUR_API_KEY_HERE") return envKey;
   return "";
-};
-
-export const saveApiKey = (key) => {
-  if (key) {
-    localStorage.setItem("BIGO_GEMINI_API_KEY", key);
-  } else {
-    localStorage.removeItem("BIGO_GEMINI_API_KEY");
-  }
 };
 
 const fetchWithRetry = async (url, options, maxRetries = 3) => {
@@ -50,9 +44,9 @@ const fetchWithRetry = async (url, options, maxRetries = 3) => {
 };
 
 export const analyzeCodeWithGemini = async (code, language) => {
-  const apiKey = getApiKey();
+  const apiKey = getKeyForFeature("VITE_GEMINI_KEY_ANALYZE");
   if (!apiKey) {
-    throw new Error("No Gemini API Key found. Please add your key in Settings.");
+    throw new Error("No Gemini API Key found for Complexity Analyzer. Please configure VITE_GEMINI_KEY_ANALYZE.");
   }
 
   // Define the prompt requesting a strict JSON format
@@ -137,7 +131,8 @@ Double check: Return ONLY a valid JSON object.
       throw new Error("Empty response received from Gemini API.");
     }
 
-    const parsedJson = JSON.parse(responseText.trim());
+    const cleanText = sanitizeJsonResponse(responseText);
+    const parsedJson = JSON.parse(cleanText);
     return parsedJson;
   } catch (error) {
     console.error("Gemini API Error:", error);
@@ -146,9 +141,9 @@ Double check: Return ONLY a valid JSON object.
 };
 
 export const convertCodeWithGemini = async (code, sourceLanguage, targetLanguage) => {
-  const apiKey = getApiKey();
+  const apiKey = getKeyForFeature("VITE_GEMINI_KEY_CONVERT");
   if (!apiKey) {
-    throw new Error("No Gemini API Key found. Please add your key in Settings.");
+    throw new Error("No Gemini API Key found for Converter. Please configure VITE_GEMINI_KEY_CONVERT.");
   }
 
   const prompt = `
@@ -208,11 +203,58 @@ Double check: Return ONLY a valid JSON object.
       throw new Error("Empty response received from Gemini API.");
     }
 
-    const parsedJson = JSON.parse(responseText.trim());
+    const cleanText = sanitizeJsonResponse(responseText);
+    const parsedJson = JSON.parse(cleanText);
     return parsedJson;
   } catch (error) {
     console.error("Gemini API Error during translation:", error);
     throw error;
   }
 };
+
+export const explainCodeWithGemini = async (code, language) => {
+  const apiKey = getKeyForFeature("VITE_GEMINI_KEY_EXPLAIN");
+  if (!apiKey) {
+    return "Explain key is not configured, but you can still view complexity results above!";
+  }
+
+  const prompt = `
+You are an intuitive computer science teacher.
+Explain what the following ${language} code actually DOES in simple, plain English (for someone learning programming).
+Explain the main logic in 3-4 clear, friendly sentences. Avoid heavy math jargon. Use a helpful real-world analogy if applicable.
+
+Code:
+\`\`\`${language}
+${code}
+\`\`\`
+
+Return a SINGLE JSON object with key "plainExplanation" containing your explanation text.
+`;
+
+  try {
+    const response = await fetchWithRetry(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: "application/json" },
+        }),
+      }
+    );
+
+    if (!response.ok) return "Code logic summary unavailable.";
+    const data = await response.json();
+    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!responseText) return "Code logic summary unavailable.";
+    const parsed = JSON.parse(sanitizeJsonResponse(responseText));
+    return parsed.plainExplanation || "Code logic summary unavailable.";
+  } catch (error) {
+    console.error("Explain Code Error:", error);
+    return "Code logic summary unavailable.";
+  }
+};
+
+
 

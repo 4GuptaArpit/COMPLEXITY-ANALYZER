@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Clock, Calendar, Code, Play, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 
-export default function HistorySection({ history, onLoadHistory, onDeleteHistory, userTier }) {
+export default function HistorySection({ history, onLoadHistory, onDeleteHistory }) {
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = userTier === "premium" ? 15 : 10;
+  const pageSize = 12;
   
   const totalPages = Math.ceil((history || []).length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
@@ -25,11 +25,8 @@ export default function HistorySection({ history, onLoadHistory, onDeleteHistory
           </h3>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] bg-primary/10 border border-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider">
-            {userTier === "premium" ? "Premium (15 logs/page)" : "Free Account (10 logs/page)"}
-          </span>
           <span className="text-xs text-text-muted">
-            Total Logs: <strong>{history?.length || 0}</strong>
+            Total Saved Logs: <strong>{history?.length || 0}</strong>
           </span>
         </div>
       </div>

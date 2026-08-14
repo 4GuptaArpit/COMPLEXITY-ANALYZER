@@ -22,4 +22,16 @@ client.interceptors.request.use(
   }
 );
 
+client.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem("BIGO_JWT_TOKEN");
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default client;
+
+

@@ -1,5 +1,6 @@
 import express from "express";
 import User from "../models/User.js";
+import History from "../models/History.js";
 import { protect } from "../middleware/auth.js";
 import { adminOnly } from "../middleware/adminOnly.js";
 
@@ -79,8 +80,9 @@ router.delete("/users/:id", protect, adminOnly, async (req, res) => {
       return res.status(400).json({ error: "Deletion denied. Admin cannot delete their own active account." });
     }
 
+    await History.deleteMany({ userId: user._id });
     await user.deleteOne();
-    res.status(200).json({ message: "User account deleted successfully from database" });
+    res.status(200).json({ message: "User account and associated history deleted successfully" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Server error deleting user account" });
@@ -88,3 +90,4 @@ router.delete("/users/:id", protect, adminOnly, async (req, res) => {
 });
 
 export default router;
+

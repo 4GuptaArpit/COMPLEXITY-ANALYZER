@@ -1,25 +1,23 @@
 import { useState } from "react";
-import { Sparkles, Copy, Check, Lock, Award, TrendingUp } from "lucide-react";
+import { Sparkles, Copy, Check, TrendingUp } from "lucide-react";
 import { parseMarkdown } from "../utils/markdownParser";
 
 
 export default function OptimizerPanel({
-  userTier,
   originalCode,
   optimizedCode,
   explanation,
   timeComplexity,
-  spaceComplexity,
-  onSignUp
+  spaceComplexity
 }) {
   const [copied, setCopied] = useState(false);
-  const [showBadgeCreated, setShowBadgeCreated] = useState(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(optimizedCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
 
   const getOptimizedComplexity = (orig) => {
     const clean = (orig || "").toUpperCase().replace(/\s+/g, "");
@@ -71,65 +69,13 @@ export default function OptimizerPanel({
     return `M ${pts.join(" L ")}`;
   };
 
-  if (userTier === "anonymous") {
-    return (
-      <div className="flex flex-col items-center justify-center p-8 text-center flex-1 bg-black/10 rounded-lg border border-border-color mt-2.5">
-        <div className="bg-primary/10 text-primary p-3 rounded-full mb-3 flex">
-          <Lock size={28} />
-        </div>
-        <h3 className="text-base font-semibold mb-1.5">Unlock AI Optimizations</h3>
-        <p className="text-xs text-text-muted max-w-[300px] mb-4 leading-relaxed">
-          Sign up for a free account to unlock better alternative solutions, detailed optimizations, and side-by-side code reviews.
-        </p>
-        <button className="btn-primary" onClick={onSignUp}>
-          Create Free Account
-        </button>
-      </div>
-    );
-  }
-
   const isAlreadyOptimal = timeComplexity === optimizedComplexity;
 
   return (
     <div className="flex flex-col mt-2.5">
-      {/* Verification Badge Generator */}
-      <div className="bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/20 rounded-lg p-4 flex flex-col items-center gap-3.5 mb-4">
-        <div className="text-center">
-          <h4 className="text-sm font-semibold flex items-center justify-center gap-1.5 text-text-main">
-            <Award size={16} className="text-primary" /> Shareable Verification Badge
-          </h4>
-          <p className="text-[11px] text-text-muted mt-0.5">
-            Generate a watermarked card to share your complexity score on LinkedIn or GitHub.
-          </p>
-        </div>
-        
-        {showBadgeCreated ? (
-          <div className="bg-[#0d1117] border border-white/10 rounded-lg p-4 w-full max-w-[280px] shadow-lg relative overflow-hidden text-left">
-            <div className="flex justify-between items-center text-[10px] text-text-muted border-b border-white/5 pb-2 mb-3">
-              <span>Verified Complexity</span>
-              <Sparkles size={12} className="text-accent-yellow" />
-            </div>
-            <h3 className="text-sm font-bold text-white mb-2">BigO.ai Scorecard</h3>
-            <div className="mb-2">
-              <div className="text-[10px] text-text-muted">TIME COMPLEXITY</div>
-              <div className="text-lg font-bold text-primary">{timeComplexity || "O(1)"}</div>
-            </div>
-            <div>
-              <div className="text-[10px] text-text-muted">SPACE COMPLEXITY</div>
-              <div className="text-base font-bold text-secondary">{spaceComplexity || "O(1)"}</div>
-            </div>
-            <div className="absolute bottom-1.5 right-2.5 text-[9px] text-text-dark font-semibold tracking-wider">
-              Verified by BigO.ai
-            </div>
-          </div>
-        ) : (
-          <button className="btn-secondary text-xs" onClick={() => setShowBadgeCreated(true)}>
-            Generate Badge Image
-          </button>
-        )}
-      </div>
 
       {/* Side by Side Diff */}
+
       <h4 className="text-[12.5px] font-semibold text-text-muted uppercase tracking-wider mb-2">
         <Sparkles size={12} className="text-primary inline mr-1" /> Side-by-Side Comparison
       </h4>

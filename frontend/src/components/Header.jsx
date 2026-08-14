@@ -1,89 +1,11 @@
 import { useState } from "react";
 import { 
-  Settings, CreditCard, Sparkles, Coins, Sun, Moon, 
-  LogIn, LogOut, User, Clock, Zap, Play, Trash2, Key 
+  Settings, Sparkles, LogOut, User, Clock, Key, Play, Trash2 
 } from "lucide-react";
-import { getApiKey, saveApiKey } from "../geminiService";
 import { useToast } from "../context/ToastContext";
 
-
-const handleDownloadReceipt = (tx, userContact, userTier) => {
-  const htmlContent = `
-    <html>
-    <head>
-      <title>Invoice - BigO.ai</title>
-      <style>
-        body { font-family: sans-serif; padding: 40px; color: #1e1b4b; background: #fafafd; line-height: 1.5; }
-        .header { border-bottom: 2px solid #6366f1; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
-        .meta { display: flex; justify-content: space-between; margin-bottom: 40px; font-size: 13px; }
-        .table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
-        .table th, .table td { border: 1px solid rgba(99, 102, 241, 0.15); padding: 12px; text-align: left; }
-        .table th { background: #f0f2ff; font-weight: bold; }
-        .total { text-align: right; font-size: 1.3em; font-weight: bold; color: #6366f1; margin-top: 30px; }
-        .footer { border-top: 1px solid rgba(99, 102, 241, 0.1); padding-top: 25px; font-size: 11px; text-align: center; color: #64748b; margin-top: 60px; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <div>
-          <h1 style="margin: 0; font-size: 24px; color: #6366f1;">BigO.ai</h1>
-          <p style="margin: 5px 0 0 0; font-size: 12px; color: #64748b;">Code Complexity Analyzer & Simulator</p>
-        </div>
-        <div style="text-align: right;">
-          <h3 style="margin: 0; font-size: 14px;">TAX RECEIPT</h3>
-          <p style="margin: 5px 0 0 0; font-size: 12px; font-family: monospace;">${tx.id}</p>
-        </div>
-      </div>
-      <div class="meta">
-        <div>
-          <strong style="color: #6366f1;">CUSTOMER DETAILS:</strong><br>
-          Contact: ${userContact}<br>
-          Tier: ${userTier.toUpperCase()}
-        </div>
-        <div style="text-align: right;">
-          <strong style="color: #6366f1;">PAYMENT META:</strong><br>
-          Date: ${tx.date}<br>
-          Time: ${tx.time}<br>
-          Status: <span style="color: #059669; font-weight: bold;">PAID</span>
-        </div>
-      </div>
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Item Description</th>
-            <th style="text-align: center;">Qty</th>
-            <th style="text-align: right;">Unit Price</th>
-            <th style="text-align: right;">Total Price</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>${tx.desc}</td>
-            <td style="text-align: center;">1</td>
-            <td style="text-align: right;">${tx.amount}</td>
-            <td style="text-align: right;">${tx.amount}</td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="total">Total Amount Billed: ${tx.amount}</div>
-      <div class="footer">
-        Thank you for choosing BigO.ai. Verification ID: txn_${(tx.id + "_" + tx.date).replace(/-/g, "").toUpperCase()}<br>
-        For billing support, reach out to billing@bigo.ai.
-      </div>
-      <script>window.print();</script>
-    </body>
-    </html>
-  `;
-  const blob = new Blob([htmlContent], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  window.open(url, '_blank');
-};
-
 export default function Header({
-  userTier,
-  setUserTier,
-  tokens,
-  onOpenCheckout,
+  user,
   theme,
   setTheme,
   userContact,
@@ -93,35 +15,49 @@ export default function Header({
   onLoadHistory,
   onDeleteHistory,
   onChangePassword,
+  onUpdateProfile,
   usersDb = []
 }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [settingsTab, setSettingsTab] = useState("account");
+  
+  const [profileName, setProfileName] = useState(user?.name || "");
+  const [profileGithub, setProfileGithub] = useState(user?.github || "");
+  const [profileBio, setProfileBio] = useState(user?.bio || "");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
   const [currPassword, setCurrPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pwdStatus, setPwdStatus] = useState({ type: "", text: "" });
   const [historyPage, setHistoryPage] = useState(1);
-  const [apiKeyVal, setApiKeyVal] = useState("");
   const { showToast } = useToast();
 
   const handleOpenSettings = (tab) => {
     setSettingsTab(tab);
-    setApiKeyVal(getApiKey());
+    setProfileName(user?.name || "");
+    setProfileGithub(user?.github || "");
+    setProfileBio(user?.bio || "");
     setShowSettings(true);
     setHistoryPage(1);
     setShowSettingsDropdown(false);
   };
 
   const activeUser = usersDb.find(u => u.contact === userContact) || {};
-  const activeUserSignup = activeUser.signup || "2026-06-15 14:32";
+  const activeUserSignup = user?.signupAt ? new Date(user.signupAt).toLocaleString() : (activeUser.signup || "2026-06-15 14:32");
 
-  // Mock transactions list
-  const transactions = userTier === "premium" ? [
-    { id: "TXN-9021", desc: "Premium Access Upgrade (1 Month)", amount: "₹40", date: activeUserSignup.split(" ")[0] || "2026-06-15", time: activeUserSignup.split(" ")[1] || "14:32" },
-    { id: "TXN-4820", desc: "Simulation Tokens Pack (10 Tokens)", amount: "₹10", date: "2026-06-15", time: "18:00" }
-  ] : [];
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!onUpdateProfile) return;
+    setIsSavingProfile(true);
+    await onUpdateProfile({
+      name: profileName,
+      github: profileGithub,
+      bio: profileBio
+    });
+    setIsSavingProfile(false);
+  };
 
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
@@ -137,24 +73,21 @@ export default function Header({
       setPwdStatus({ type: "error", text: "Password must be at least 6 characters." });
       return;
     }
-    
-    try {
-      const res = await onChangePassword(userContact, currPassword, newPassword);
-      if (res.success) {
-        setPwdStatus({ type: "success", text: res.message || "Password updated successfully!" });
-        setCurrPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-      } else {
-        setPwdStatus({ type: "error", text: res.message || "Failed to update password." });
-      }
-    } catch (err) {
-      setPwdStatus({ type: "error", text: "An unexpected error occurred." });
+    if (!onChangePassword) return;
+    const res = await onChangePassword(userContact, currPassword, newPassword);
+    if (res.success) {
+      setPwdStatus({ type: "success", text: "Password updated successfully!" });
+      setCurrPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } else {
+      setPwdStatus({ type: "error", text: res.message || "Failed to update password." });
     }
   };
 
   const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
+    if (theme === "desert") setTheme("rainy");
+    else setTheme("desert");
   };
 
   return (
@@ -170,79 +103,22 @@ export default function Header({
       </div>
 
       <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 sm:gap-3">
-        {/* 1. Theme Change */}
+        {/* Theme Switcher (Desert ↔ Rainy) */}
         <button
-          className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main p-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15 transition-all duration-200"
+          className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer hover:bg-gray-500/15 transition-all flex items-center gap-1.5"
           onClick={toggleTheme}
-          title="Toggle Theme"
+          title="Switch Theme (Desert ↔ Rainy)"
         >
-          {theme === "dark" ? <Sun size={15} className="text-accent-yellow" /> : <Moon size={15} className="text-primary" />}
+          {theme === "rainy" ? <span>🌧️ Rainy</span> : <span>🏜️ Desert</span>}
         </button>
- 
-        {/* 2. Demo Toggles */}
-        <div className="bg-white/4 dark:bg-black/3 border border-border-color rounded-full flex p-0.5 opacity-60">
-          <button
-            className={`cursor-pointer text-[10px] font-semibold px-2 py-1 rounded-full transition-all duration-200 ${
-              userTier === "anonymous" ? "bg-primary text-white shadow-md shadow-primary/30" : "text-text-muted"
-            }`}
-            onClick={() => setUserTier("anonymous")}
-            title="Demo: Set to Anonymous"
-          >
-            Anon
-          </button>
-          <button
-            className={`cursor-pointer text-[10px] font-semibold px-2 py-1 rounded-full transition-all duration-200 ${
-              userTier === "free" ? "bg-primary text-white shadow-md shadow-primary/30" : "text-text-muted"
-            }`}
-            onClick={() => setUserTier("free")}
-            title="Demo: Set to Logged In Free"
-          >
-            Free
-          </button>
-          <button
-            className={`cursor-pointer text-[10px] font-semibold px-2 py-1 rounded-full transition-all duration-200 ${
-              userTier === "premium" ? "bg-gradient-to-r from-accent-purple to-primary text-white shadow-md shadow-accent-purple/30" : "text-text-muted"
-            }`}
-            onClick={() => setUserTier("premium")}
-            title="Demo: Set to Paid Premium"
-          >
-            Paid
-          </button>
-        </div>
 
-        {/* 4. Tokens Available */}
-        {userTier === "premium" && (
-          <div className="flex items-center gap-1.5 bg-accent-yellow/10 border border-accent-yellow/20 text-accent-yellow text-xs font-semibold px-2.5 py-1.5 rounded-full">
-            <Coins size={14} />
-            <span>{tokens} Tokens</span>
-          </div>
-        )}
 
-        {/* 5. Upgrade or Buy Tokens */}
-        {userTier !== "premium" ? (
-          <button
-            className="bg-gradient-to-r from-primary to-secondary border-none text-white px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all duration-200 hover:scale-[1.01] hover:brightness-110 shadow-md shadow-primary/35"
-            onClick={onOpenCheckout}
-          >
-            <CreditCard size={14} />
-            <span>Upgrade (₹40)</span>
-          </button>
-        ) : (
-          <button
-            className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium cursor-pointer flex items-center gap-1.5 hover:bg-gray-500/15 transition-all duration-200"
-            onClick={onOpenCheckout}
-          >
-            <Coins size={14} />
-            <span>Buy Tokens</span>
-          </button>
-        )}
-
-        {/* 6. User Login Number / Login Button */}
+        {/* User Badge / Login Button */}
         {userContact ? (
           <div className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-default">
             <User size={13} className="text-primary" />
-            <span className="max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap">
-              {userContact}
+            <span className="max-w-[130px] overflow-hidden text-ellipsis whitespace-nowrap font-semibold">
+              {user?.name || userContact}
             </span>
           </div>
         ) : (
@@ -250,12 +126,12 @@ export default function Header({
             className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-3 py-2 rounded-lg text-xs font-medium cursor-pointer flex items-center gap-1.5 hover:bg-gray-500/15 transition-all duration-200"
             onClick={onOpenLogin}
           >
-            <LogIn size={14} />
+            <User size={14} />
             <span>Login / Sign Up</span>
           </button>
         )}
 
-        {/* 7. Settings Button with Dropdown */}
+        {/* Settings Dropdown */}
         {userContact ? (
           <div className="relative">
             <button
@@ -295,13 +171,6 @@ export default function Header({
                   </button>
                   <button
                     className="w-full text-left bg-transparent border-none px-3.5 py-2 text-xs text-text-muted hover:text-text-main hover:bg-white/5 cursor-pointer flex items-center gap-2 transition-colors"
-                    onClick={() => handleOpenSettings("apikey")}
-                  >
-                    <Settings size={13} className="text-accent-green" />
-                    <span>Gemini API Key</span>
-                  </button>
-                  <button
-                    className="w-full text-left bg-transparent border-none px-3.5 py-2 text-xs text-text-muted hover:text-text-main hover:bg-white/5 cursor-pointer flex items-center gap-2 transition-colors"
                     onClick={() => handleOpenSettings("history")}
                   >
                     <Clock size={13} className="text-accent-yellow" />
@@ -311,18 +180,9 @@ export default function Header({
               </>
             )}
           </div>
-        ) : (
-          <button
-            className={`bg-white/5 dark:bg-black/3 border text-text-main p-2 px-3 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15 transition-all duration-200 flex items-center gap-1.5 border-border-color`}
-            onClick={() => handleOpenSettings("apikey")}
-            title="Gemini API Key Settings"
-          >
-            <Settings size={14} />
-            <span>API Key Settings</span>
-          </button>
-        )}
+        ) : null}
 
-        {/* 8. Logout Button */}
+        {/* Logout Button */}
         {userContact && (
           <button
             className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main p-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15 transition-all duration-200"
@@ -334,7 +194,7 @@ export default function Header({
         )}
       </div>
 
-      {/* Settings Modal (Positioned with gap from top) */}
+      {/* Settings Modal */}
       {showSettings && (
         <div 
           className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex items-start justify-center p-4 pt-[12vh]"
@@ -344,7 +204,7 @@ export default function Header({
             className="bg-bg-main border border-border-color rounded-xl w-full max-w-[620px] shadow-glass-shadow overflow-hidden flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header (Changes dynamically per tab/screen) */}
+            {/* Modal Header */}
             <div className="p-4 px-5 border-b border-border-color flex justify-between items-center bg-white/2">
               <h3 className="flex items-center gap-2.5 text-sm font-bold text-text-main">
                 {settingsTab === "account" && (
@@ -357,12 +217,6 @@ export default function Header({
                   <>
                     <Key size={18} className="text-secondary" />
                     <span>Change Password</span>
-                  </>
-                )}
-                {settingsTab === "apikey" && (
-                  <>
-                    <Settings size={18} className="text-accent-green" />
-                    <span>Gemini API Key Settings</span>
                   </>
                 )}
                 {settingsTab === "history" && (
@@ -383,73 +237,66 @@ export default function Header({
             {/* Modal Body */}
             <div className="p-5 overflow-y-auto flex-1 text-xs">
               {settingsTab === "account" && (
-                <div className="flex flex-col gap-5">
-                  {/* Account details */}
-                  <div className="bg-white/3 border border-border-color rounded-lg p-4">
-                    <h4 className="font-bold text-text-main mb-2.5 uppercase tracking-wider text-[10px] text-primary">Account Details</h4>
-                    <div className="grid grid-cols-2 gap-3 text-text-muted text-left">
-                      <div>
-                        <span className="text-[10px] text-text-dark block uppercase">Email / Mobile</span>
-                        <strong className="text-text-main text-[13px]">{userContact}</strong>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-text-dark block uppercase">Account Level</span>
-                        <strong className="text-text-main text-[13px] uppercase flex items-center gap-1">
-                          {userTier === "premium" ? (
-                            <span className="text-accent-purple font-bold">Premium (Paid)</span>
-                          ) : (
-                            <span className="text-text-dark font-medium">Free Tier</span>
-                          )}
-                        </strong>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-text-dark block uppercase">Signup Timestamp</span>
-                        <span className="font-mono text-text-main">{activeUserSignup}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-text-dark block uppercase">Subscription Expiry</span>
-                        <span className="text-text-main font-semibold">
-                          {userTier === "premium" ? "Active (Expires in 30 Days)" : "N/A"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                <div className="flex flex-col gap-4 text-left">
+                  {/* Interactive Profile Form */}
+                  <form onSubmit={handleSaveProfile} className="bg-white/3 border border-border-color rounded-lg p-4 flex flex-col gap-3">
+                    <h4 className="font-bold text-text-main uppercase tracking-wider text-[10px] text-primary flex items-center gap-1.5">
+                      <User size={13} />
+                      <span>User Profile Details</span>
+                    </h4>
 
-                  {/* Transaction Receipts (only for premium users) */}
-                  {userTier === "premium" && (
-                    <div className="bg-white/3 border border-border-color rounded-lg p-4">
-                      <h4 className="font-bold text-text-main mb-2 uppercase tracking-wider text-[10px] text-primary text-left">Simulated Transaction Receipts</h4>
-                      <div className="overflow-hidden border border-border-color rounded-lg">
-                        <table className="w-full text-[11px] border-collapse text-left">
-                          <thead>
-                            <tr className="bg-white/5 border-b border-border-color text-text-muted font-semibold">
-                              <th className="p-2">Transaction ID</th>
-                              <th className="p-2">Description</th>
-                              <th className="p-2">Amount</th>
-                              <th className="p-2 text-right">Receipt</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {transactions.map(tx => (
-                              <tr key={tx.id} className="border-b border-border-color/60 hover:bg-white/1 text-text-main">
-                                <td className="p-2 font-mono">{tx.id}</td>
-                                <td className="p-2 text-text-muted">{tx.desc}</td>
-                                <td className="p-2 font-semibold text-accent-yellow">{tx.amount}</td>
-                                <td className="p-2 text-right">
-                                  <button
-                                    onClick={() => handleDownloadReceipt(tx, userContact, userTier)}
-                                    className="bg-primary/10 border border-primary/20 text-primary p-0.5 px-2 rounded hover:bg-primary/20 transition-all cursor-pointer text-[10px] font-semibold"
-                                  >
-                                    Invoice
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                    <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] text-text-dark uppercase font-semibold">Full Name / Display Name</label>
+                        <input
+                          type="text"
+                          className="bg-black/25 border border-border-color rounded p-1.5 text-text-main outline-none focus:border-primary text-xs"
+                          placeholder="e.g. Alex Rivera"
+                          value={profileName}
+                          onChange={(e) => setProfileName(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] text-text-dark uppercase font-semibold">GitHub Username</label>
+                        <input
+                          type="text"
+                          className="bg-black/25 border border-border-color rounded p-1.5 text-text-main outline-none focus:border-primary text-xs"
+                          placeholder="e.g. alexcoder"
+                          value={profileGithub}
+                          onChange={(e) => setProfileGithub(e.target.value)}
+                        />
                       </div>
                     </div>
-                  )}
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] text-text-dark uppercase font-semibold">Short Bio / Developer Bio</label>
+                      <textarea
+                        rows="2"
+                        className="bg-black/25 border border-border-color rounded p-1.5 text-text-main outline-none focus:border-primary text-xs resize-none"
+                        placeholder="e.g. Full-stack developer passionate about algorithms & optimization."
+                        value={profileBio}
+                        onChange={(e) => setProfileBio(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="flex justify-between items-center mt-1">
+                      <span className="text-[10px] text-text-dark font-mono">Registered Email: <strong>{userContact}</strong></span>
+                      <button
+                        type="submit"
+                        disabled={isSavingProfile}
+                        className="bg-gradient-to-r from-primary to-secondary text-white p-1.5 px-3 rounded text-[11px] font-semibold cursor-pointer border-none shadow-md shadow-primary/20 disabled:opacity-40"
+                      >
+                        {isSavingProfile ? "Saving Profile..." : "Save Profile Changes"}
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* Account Meta */}
+                  <div className="bg-white/3 border border-border-color rounded-lg p-3 flex justify-between items-center text-text-muted">
+                    <span className="text-[10px] text-text-dark uppercase font-semibold">Account Signup Timestamp:</span>
+                    <span className="font-mono text-text-main text-[12px]">{activeUserSignup}</span>
+                  </div>
                 </div>
               )}
 
@@ -506,52 +353,7 @@ export default function Header({
                 </form>
               )}
 
-              {settingsTab === "apikey" && (
-                <div className="bg-white/3 border border-border-color rounded-lg p-4 flex flex-col gap-4 text-left">
-                  <h4 className="font-bold text-text-main uppercase tracking-wider text-[10px] text-accent-green flex items-center gap-1.5">
-                    <Settings size={13} />
-                    <span>Gemini API Key Integration</span>
-                  </h4>
-                  
-                  <p className="text-text-muted text-[11px] leading-relaxed">
-                    By default, BigO.ai uses local offline heuristics for complexity analysis. 
-                    To enable **live AI-powered complexity analysis, translation, and code optimization**, 
-                    paste a valid Gemini API Key below.
-                  </p>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] text-text-dark uppercase font-semibold">Gemini API Key</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="password"
-                        placeholder="Paste your AQ. or AIzaSy API key here..."
-                        className="flex-1 bg-black/25 border border-border-color rounded p-2 text-text-main outline-none focus:border-primary text-xs"
-                        value={apiKeyVal}
-                        onChange={(e) => setApiKeyVal(e.target.value)}
-                      />
-                      <button
-                        onClick={() => {
-                          saveApiKey(apiKeyVal.trim());
-                          showToast("Gemini API Key saved successfully!", "success");
-                        }}
-                        className="bg-gradient-to-r from-primary to-secondary text-white p-2 px-4 rounded text-xs font-semibold cursor-pointer border-none shadow-md shadow-primary/20 hover:brightness-110 transition-all animate-none"
-                      >
-                        Save Key
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="bg-black/10 border border-border-color rounded p-3 text-[11px] text-text-muted flex flex-col gap-1">
-                    <span className="font-bold text-text-main">How to get a free API Key:</span>
-                    <span>1. Go to <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-primary hover:underline font-semibold">Google AI Studio</a>.</span>
-                    <span>2. Click on &quot;Get API Key&quot; and generate a new key.</span>
-                    <span>3. Paste the key here and save. Your key is stored purely locally in your browser.</span>
-                  </div>
-                </div>
-              )}
-
               {settingsTab === "history" && (
-                /* History logs tab */
                 <div className="flex flex-col gap-3">
                   {history.length === 0 ? (
                     <div className="text-center p-8 text-text-dark flex flex-col items-center gap-2">
@@ -567,15 +369,13 @@ export default function Header({
                               <th className="p-2 px-3">Algorithm</th>
                               <th className="p-2">Language</th>
                               <th className="p-2 text-center">Complexity</th>
-                              {userTier === "premium" && <th className="p-2 text-center">Tokens</th>}
                               <th className="p-2 text-right">Actions</th>
                             </tr>
                           </thead>
                           <tbody>
                             {(() => {
                               const hPageSize = 6;
-                              const maxHLogs = userTier === "premium" ? 30 : 20;
-                              const slicedHistory = history.slice(0, maxHLogs);
+                              const slicedHistory = history.slice(0, 30);
                               const hStartIndex = (historyPage - 1) * hPageSize;
                               const paginatedH = slicedHistory.slice(hStartIndex, hStartIndex + hPageSize);
 
@@ -594,11 +394,6 @@ export default function Header({
                                     <td className="p-2 text-center">
                                       <span className="font-mono font-bold text-primary">{item.timeComplexity}</span>
                                     </td>
-                                    {userTier === "premium" && (
-                                      <td className="p-2 text-center font-mono font-semibold text-accent-yellow">
-                                        {item.tokensUsed !== undefined ? item.tokensUsed : 0}
-                                      </td>
-                                    )}
                                     <td className="p-2 text-right flex gap-1 justify-end">
                                       <button
                                         className="bg-primary hover:bg-primary-hover text-white p-1 px-2.5 rounded text-[10px] font-semibold flex items-center gap-1 border-none cursor-pointer"
@@ -614,16 +409,15 @@ export default function Header({
                                         className="bg-transparent text-text-dark hover:text-accent-red p-1 rounded hover:bg-white/5 border-none cursor-pointer"
                                         onClick={() => {
                                           onDeleteHistory(globalIdx);
-                                          // Handle page overflow if deleting last item on page
                                           const nextTotal = slicedHistory.length - 1;
                                           const nextPages = Math.ceil(nextTotal / hPageSize);
                                           if (historyPage > nextPages && nextPages > 0) {
                                             setHistoryPage(nextPages);
                                           }
                                         }}
-                                        title="Delete log"
+                                        title="Delete Log Record"
                                       >
-                                        <Trash2 size={11} />
+                                        <Trash2 size={12} />
                                       </button>
                                     </td>
                                   </tr>
@@ -634,64 +428,35 @@ export default function Header({
                         </table>
                       </div>
 
-                      {/* Pagination buttons */}
-                      {(() => {
-                        const hPageSize = 6;
-                        const maxHLogs = userTier === "premium" ? 30 : 20;
-                        const slicedHistory = history.slice(0, maxHLogs);
-                        const hTotalPages = Math.ceil(slicedHistory.length / hPageSize);
-                        if (hTotalPages <= 1) return null;
-
-                        return (
-                          <div className="flex justify-center items-center gap-1 mt-2">
+                      {/* Pagination Controls */}
+                      {history.length > 6 && (
+                        <div className="flex justify-between items-center text-[11px] text-text-muted mt-1">
+                          <span>
+                            Showing {((historyPage - 1) * 6) + 1} - {Math.min(historyPage * 6, Math.min(history.length, 30))} of {Math.min(history.length, 30)} logs
+                          </span>
+                          <div className="flex gap-1.5">
                             <button
                               disabled={historyPage === 1}
-                              onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
-                              className="bg-white/5 border border-border-color text-text-muted p-1 px-2 rounded cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-[10px]"
+                              onClick={() => setHistoryPage(prev => prev - 1)}
+                              className="px-2 py-0.5 rounded border border-border-color bg-white/3 disabled:opacity-30 cursor-pointer text-text-main"
                             >
                               Prev
                             </button>
-                            {Array.from({ length: hTotalPages }).map((_, i) => {
-                              const pageNum = i + 1;
-                              const isActive = pageNum === historyPage;
-                              return (
-                                <button
-                                  key={pageNum}
-                                  onClick={() => setHistoryPage(pageNum)}
-                                  className={`p-1 px-2 rounded text-[10px] font-bold cursor-pointer border border-none ${
-                                    isActive
-                                      ? "bg-primary text-white shadow-sm shadow-primary/20"
-                                      : "bg-white/5 text-text-muted hover:bg-white/10"
-                                  }`}
-                                >
-                                  {pageNum}
-                                </button>
-                              );
-                            })}
+                            <span className="px-2 py-0.5 font-mono">{historyPage} / {Math.ceil(Math.min(history.length, 30) / 6)}</span>
                             <button
-                              disabled={historyPage === hTotalPages}
-                              onClick={() => setHistoryPage(p => Math.min(hTotalPages, p + 1))}
-                              className="bg-white/5 border border-border-color text-text-muted p-1 px-2 rounded cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-[10px]"
+                              disabled={historyPage >= Math.ceil(Math.min(history.length, 30) / 6)}
+                              onClick={() => setHistoryPage(prev => prev + 1)}
+                              className="px-2 py-0.5 rounded border border-border-color bg-white/3 disabled:opacity-30 cursor-pointer text-text-main"
                             >
                               Next
                             </button>
                           </div>
-                        );
-                      })()}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
               )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-3 px-4 border-t border-border-color flex justify-end gap-2 bg-black/10">
-              <button
-                className="bg-white/5 border border-border-color text-text-main px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15"
-                onClick={() => setShowSettings(false)}
-              >
-                Close Settings
-              </button>
             </div>
           </div>
         </div>

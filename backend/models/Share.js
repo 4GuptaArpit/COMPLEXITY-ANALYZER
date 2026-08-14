@@ -1,13 +1,14 @@
 import mongoose from "mongoose";
 
-const historySchema = new mongoose.Schema(
+const shareSchema = new mongoose.Schema(
   {
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+    shortId: {
+      type: String,
       required: true,
+      unique: true,
+      index: true,
     },
-    name: {
+    code: {
       type: String,
       required: true,
     },
@@ -23,9 +24,8 @@ const historySchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    code: {
+    explanation: {
       type: String,
-      required: true,
     },
     optimizedCode: {
       type: String,
@@ -33,33 +33,18 @@ const historySchema = new mongoose.Schema(
     optimizationExplanation: {
       type: String,
     },
-    explanation: {
-      type: String,
-    },
     heatmap: {
       type: Map,
       of: String,
     },
-    simulation: {
-      type: Array,
-      default: [],
-    },
-    quiz: {
-      type: Array,
-      default: [],
-    },
-    tokensUsed: {
-      type: Number,
-      default: 0,
-    }
   },
   {
     timestamps: true,
   }
 );
 
-historySchema.index({ userId: 1, createdAt: -1 });
+// TTL index: auto-delete shared links after 30 days
+shareSchema.index({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
 
-const History = mongoose.model("History", historySchema);
-export default History;
-
+const Share = mongoose.model("Share", shareSchema);
+export default Share;

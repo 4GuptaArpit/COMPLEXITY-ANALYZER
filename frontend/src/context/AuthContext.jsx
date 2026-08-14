@@ -34,6 +34,36 @@ export function AuthProvider({ children }) {
     fetchProfile();
   }, [token]);
 
+  const register = async (name, contact, password) => {
+    try {
+      const { data } = await client.post("/auth/register", { name, contact, password });
+      localStorage.setItem("BIGO_JWT_TOKEN", data.token);
+      setToken(data.token);
+      setUser(data.user);
+      showToast("Account created successfully! Logged in.", "success");
+      return true;
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || "Registration failed.";
+      showToast(errorMsg, "error");
+      return false;
+    }
+  };
+
+  const login = async (contact, password) => {
+    try {
+      const { data } = await client.post("/auth/login", { contact, password });
+      localStorage.setItem("BIGO_JWT_TOKEN", data.token);
+      setToken(data.token);
+      setUser(data.user);
+      showToast("Welcome back! Logged in successfully.", "success");
+      return true;
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || "Authentication failed.";
+      showToast(errorMsg, "error");
+      return false;
+    }
+  };
+
   const sendOtp = async (contact) => {
     try {
       await client.post("/auth/send-otp", { contact });
@@ -61,16 +91,15 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const socialLogin = async (provider) => {
+  const updateProfile = async (profileData) => {
     try {
-      const mockEmail = provider === "Google" ? "google.coder@gmail.com" : "github.developer@github.com";
-      const otpSent = await sendOtp(mockEmail);
-      if (otpSent) {
-        return await verifyOtp(mockEmail, "1234");
-      }
-      return false;
+      const { data } = await client.patch("/user/profile", profileData);
+      setUser(data.user);
+      showToast(data.message || "Profile updated successfully!", "success");
+      return true;
     } catch (err) {
-      showToast("Social Login Failed", "error");
+      const errorMsg = err.response?.data?.error || "Failed to update profile.";
+      showToast(errorMsg, "error");
       return false;
     }
   };
@@ -93,81 +122,19 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const purchase = async (option) => {
-    try {
-      const { data } = await client.post("/billing/purchase", { option });
-      setUser(data.user);
-      showToast(data.message, "success");
-      return true;
-    } catch (err) {
-      const errorMsg = err.response?.data?.error || "Purchase transaction failed.";
-      showToast(errorMsg, "error");
-      return false;
-    }
-  };
-
-  const deductSimToken = async () => {
-    if (!token || user?.id === "demo_id") {
-      setUser((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          tokens: Math.max(0, prev.tokens - 1)
-        };
-      });
-      return true;
-    }
-
-    try {
-      const { data } = await client.patch("/billing/deduct-token");
-      setUser(data.user);
-      return true;
-    } catch (err) {
-      const errorMsg = err.response?.data?.error || "Token deduction failed.";
-      showToast(errorMsg, "error");
-      return false;
-    }
-  };
-
-  const handleDemoSetTier = (tier) => {
-    if (tier === "anonymous") {
-      logout();
-      return;
-    }
-    setUser((prev) => {
-      if (!prev) {
-        // If not logged in, mock a contact for demo purposes
-        const mockContact = tier === "premium" ? "+919988776655" : "alex.coder@gmail.com";
-        return {
-          id: "demo_id",
-          contact: mockContact,
-          tier,
-          tokens: tier === "premium" ? 70 : 0,
-        };
-      }
-      return {
-        ...prev,
-        tier,
-        tokens: tier === "premium" ? 70 : 0,
-      };
-    });
-    showToast(`Tier switched to ${tier.toUpperCase()} for demo.`, "info");
-  };
-
   return (
     <AuthContext.Provider
       value={{
         user,
         token,
         loading,
+        register,
+        login,
         sendOtp,
         verifyOtp,
-        socialLogin,
+        updateProfile,
         logout,
         changePassword,
-        purchase,
-        handleDemoSetTier,
-        deductSimToken
       }}
     >
       {children}
