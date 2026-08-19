@@ -68,6 +68,8 @@ const extractAndParseJson = (raw) => {
   }
 };
 
+const API_BASE = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
+
 /**
  * Calls the streaming SSE endpoint and returns a Promise that resolves
  * with the fully parsed JSON result once the stream is complete.
@@ -80,7 +82,7 @@ const streamGemini = (url, body, onChunk) => {
   return new Promise(async (resolve, reject) => {
     try {
       const token = localStorage.getItem("BIGO_JWT_TOKEN");
-      const response = await fetch(`/api${url}`, {
+      const response = await fetch(`${API_BASE}${url}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
