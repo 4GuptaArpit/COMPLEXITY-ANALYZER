@@ -14,6 +14,7 @@ export default function EditorPanel({
   onAnalyze,
   onSimulate,
   isAnalyzing,
+  streamedChunks,
   detectedLanguage,
   activeExecutingLine,
 }) {
@@ -109,7 +110,14 @@ export default function EditorPanel({
             {isAnalyzing ? (
               <>
                 <Loader2 size={13} className="animate-spin text-accent-primary" />
-                <span>Synthesizing Proof...</span>
+                {streamedChunks > 0 ? (
+                  <span className="flex items-center gap-1">
+                    <span>Streaming</span>
+                    <span className="font-mono text-[10px] opacity-80">({streamedChunks} chunks)</span>
+                  </span>
+                ) : (
+                  <span>Connecting to AI...</span>
+                )}
               </>
             ) : (
               <span>Analyze Complexity</span>

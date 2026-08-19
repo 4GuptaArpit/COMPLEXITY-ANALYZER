@@ -72,6 +72,7 @@ export default function App() {
     staticAnalysis,
     isAnalyzing,
     isConverting,
+    streamedChunks,
     handleAnalyze,
     handleConvert,
   } = useAnalysis(user, onHistorySaved);
@@ -159,6 +160,7 @@ export default function App() {
             onAnalyze={handleAnalyze}
             onSimulate={handleSimulateTrigger}
             isAnalyzing={isAnalyzing}
+            streamedChunks={streamedChunks}
             detectedLanguage={detectedLanguage}
             activeExecutingLine={activeExecutingLine}
           />

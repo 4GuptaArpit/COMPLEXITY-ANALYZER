@@ -14,6 +14,8 @@ export function useAnalysis(user, onHistorySaved) {
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
+  // Tracks how many SSE chunks have been received — used by UI to show a live "Generating…" counter
+  const [streamedChunks, setStreamedChunks] = useState(0);
 
   const [analysisResult, setAnalysisResult] = useState({
     timeComplexity: "O(N)",
@@ -84,21 +86,25 @@ export function useAnalysis(user, onHistorySaved) {
     }
 
     setIsAnalyzing(true);
+    setStreamedChunks(0);
     const targetLang = detectLanguage(code);
 
     try {
-      const res = await analyzeCodeWithGemini(code, targetLang);
+      const res = await analyzeCodeWithGemini(code, targetLang, () => {
+        // Each SSE chunk increments the counter — signals the UI that data is flowing
+        setStreamedChunks((n) => n + 1);
+      });
       setAnalysisResult(res);
+      if (res.plainExplanation) {
+        setPlainExplanation(res.plainExplanation);
+      }
       await saveToHistory(res);
       showToast("Deep AI Complexity Analysis complete!", "success");
-
-      explainCodeWithGemini(code, targetLang)
-        .then((text) => setPlainExplanation(text))
-        .catch(() => setPlainExplanation("Code logic summary unavailable."));
     } catch (err) {
       showToast("Analysis error: " + err.message, "error");
     } finally {
       setIsAnalyzing(false);
+      setStreamedChunks(0);
     }
   };
 
@@ -111,11 +117,14 @@ export function useAnalysis(user, onHistorySaved) {
     }
 
     setIsConverting(true);
+    setStreamedChunks(0);
     setConvertedCode("");
     setConversionExplanation("");
 
     try {
-      const res = await convertCodeWithGemini(code, sourceLang, targetLang);
+      const res = await convertCodeWithGemini(code, sourceLang, targetLang, () => {
+        setStreamedChunks((n) => n + 1);
+      });
       setConvertedCode(res.convertedCode);
       setConversionExplanation(res.explanation);
       showToast("Code conversion complete!", "success");
@@ -123,6 +132,7 @@ export function useAnalysis(user, onHistorySaved) {
       showToast("Conversion failed: " + err.message, "error");
     } finally {
       setIsConverting(false);
+      setStreamedChunks(0);
     }
   };
 
@@ -138,6 +148,7 @@ export function useAnalysis(user, onHistorySaved) {
     staticAnalysis,
     isAnalyzing,
     isConverting,
+    streamedChunks,
     handleAnalyze,
     handleConvert,
   };
