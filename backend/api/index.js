@@ -133,10 +133,27 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-if (process.env.NODE_ENV !== "production") {
-  app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT} in local mode.`);
-  });
-}
+
+app.listen(PORT, () => {
+  console.log(`BigO.ai backend server listening on port ${PORT}`);
+
+  // ─── 14-MINUTE AUTO-WAKE KEEP-ALIVE SYSTEM FOR RENDER ───────────────────────
+  const serverUrl = process.env.RENDER_EXTERNAL_URL || process.env.SERVER_URL;
+  if (serverUrl) {
+    const PING_INTERVAL_MS = 14 * 60 * 1000; // 14 minutes
+    const pingUrl = `${serverUrl.replace(/\/$/, "")}/api/health`;
+
+    setInterval(async () => {
+      try {
+        const response = await fetch(pingUrl);
+        console.log(`[Auto-Wake Ping] Keep-alive ping sent to ${pingUrl} — Status: ${response.status}`);
+      } catch (err) {
+        console.warn(`[Auto-Wake Ping] Ping to self failed:`, err.message);
+      }
+    }, PING_INTERVAL_MS);
+
+    console.log(`[Auto-Wake] Active! Pinging ${pingUrl} every 14 minutes to prevent Render sleep.`);
+  }
+});
 
 export default app;

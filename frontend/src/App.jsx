@@ -52,6 +52,11 @@ export default function App() {
     }
   };
 
+  // Pre-warm backend on initial mount
+  useEffect(() => {
+    client.get("/health").catch(() => {});
+  }, []);
+
   useEffect(() => {
     fetchHistory();
   }, [user]);
