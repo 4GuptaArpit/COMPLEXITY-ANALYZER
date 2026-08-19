@@ -68,7 +68,10 @@ const extractAndParseJson = (raw) => {
   }
 };
 
-const API_BASE = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
+const rawApiUrl = import.meta.env.VITE_API_URL || "";
+const API_BASE = rawApiUrl
+  ? (rawApiUrl.replace(/\/$/, "").endsWith("/api") ? rawApiUrl.replace(/\/$/, "") : `${rawApiUrl.replace(/\/$/, "")}/api`)
+  : "/api";
 
 /**
  * Calls the streaming SSE endpoint and returns a Promise that resolves
