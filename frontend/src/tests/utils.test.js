@@ -28,9 +28,19 @@ describe("detectLanguage Utility", () => {
     expect(detectLanguage(pythonCode)).toBe("python");
   });
 
+  it("detects Python classes with self and dunder methods", () => {
+    const pyClass = `class Node:\n  def __init__(self, val):\n    self.val = val\n    self.next = None`;
+    expect(detectLanguage(pyClass)).toBe("python");
+  });
+
   it("detects Rust code", () => {
     const rustCode = `fn fibonacci(n: u32) -> u32 {\n  let mut a = 0;\n  let mut b = 1;\n  for _ in 0..n {\n    let temp = a;\n    a = b;\n    b = temp + b;\n  }\n  a\n}`;
     expect(detectLanguage(rustCode)).toBe("rust");
+  });
+
+  it("detects Rust with pattern matching and Vec", () => {
+    const rustMatch = `use std::collections::HashMap;\nfn process(v: Vec<i32>) {\n  match v.get(0) {\n    Some(x) => println!("Found {}", x),\n    None => ()\n  }\n}`;
+    expect(detectLanguage(rustMatch)).toBe("rust");
   });
 
   it("detects JavaScript code", () => {
@@ -43,5 +53,10 @@ describe("detectLanguage Utility", () => {
     const result = detectLanguage(javaNoClass);
     expect(result).toBe("java");
     expect(result).not.toBe("javascript");
+  });
+
+  it("detects C standard library structures and memory calls", () => {
+    const cCode = `#include <stdio.h>\n#include <stdlib.h>\nint main() {\n  int* ptr = (int*)malloc(sizeof(int) * 10);\n  printf("Allocated\\n");\n  free(ptr);\n  return 0;\n}`;
+    expect(detectLanguage(cCode)).toBe("cpp"); // C code resolves to cpp / C family
   });
 });

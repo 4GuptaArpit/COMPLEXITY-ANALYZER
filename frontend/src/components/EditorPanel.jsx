@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Play, Sparkles } from "lucide-react";
+import { Play, Sparkles, Loader2 } from "lucide-react";
 import CodeMirror from "@uiw/react-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { python } from "@codemirror/lang-python";
@@ -14,19 +14,25 @@ export default function EditorPanel({
   onAnalyze,
   onSimulate,
   isAnalyzing,
-  detectedLanguage
+  detectedLanguage,
+  activeExecutingLine,
 }) {
   const activeLang = detectedLanguage || "javascript";
 
   const extensions = useMemo(() => {
     switch (activeLang) {
-      case "python": return [python()];
+      case "python":
+        return [python()];
       case "cpp":
-      case "c": return [cpp()];
-      case "java": return [java()];
-      case "rust": return [rust()];
+      case "c":
+        return [cpp()];
+      case "java":
+        return [java()];
+      case "rust":
+        return [rust()];
       case "javascript":
-      default: return [javascript()];
+      default:
+        return [javascript()];
     }
   }, [activeLang]);
 
@@ -37,8 +43,15 @@ export default function EditorPanel({
           <Sparkles size={18} className="text-primary" />
           <span>Algorithm Sandbox</span>
         </h3>
-        
+
         <div className="flex gap-2 items-center">
+          {activeExecutingLine && (
+            <span className="bg-accent-primary/20 border border-accent-primary/40 text-accent-primary text-[11px] font-mono font-bold px-2 py-0.5 rounded-md flex items-center gap-1.5 animate-pulse">
+              <Play size={10} className="fill-accent-primary" />
+              <span>Line {activeExecutingLine}</span>
+            </span>
+          )}
+
           {/* Display detected language badge */}
           <span className="bg-secondary/15 border border-secondary/25 text-secondary text-[11px] font-semibold px-2.5 py-1 rounded-md animate-pulse uppercase flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
@@ -46,6 +59,22 @@ export default function EditorPanel({
           </span>
         </div>
       </div>
+
+      {/* Debugger Active Banner */}
+      {activeExecutingLine && (
+        <div className="bg-accent-primary/10 border-b border-accent-primary/30 p-1.5 px-4 flex items-center justify-between text-xs font-mono text-accent-primary">
+          <span className="flex items-center gap-1.5 font-bold">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-primary"></span>
+            </span>
+            <span>DEBUGGER TRACE: LINE {activeExecutingLine} IN EXECUTION</span>
+          </span>
+          <span className="text-[10px] text-text-muted">
+            Tracking Variable Scope
+          </span>
+        </div>
+      )}
 
       {/* CodeMirror Syntax Highlighting Editor */}
       <div className="relative flex-1 bg-[#282c34] rounded-b-xl font-mono overflow-hidden text-left text-[14px]">
@@ -66,14 +95,25 @@ export default function EditorPanel({
           <span>Paste any code snippet — language is auto-detected instantly</span>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           {/* Analyze Complexity */}
           <button
-            className="bg-white/5 dark:bg-black/3 border border-border-color text-text-main px-3.5 py-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-gray-500/15 transition-all duration-200 disabled:opacity-40"
+            className={`border border-border-color text-text-main px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 flex items-center gap-2 ${
+              isAnalyzing
+                ? "bg-accent-primary/20 border-accent-primary text-accent-primary cursor-wait"
+                : "bg-white/5 dark:bg-black/3 hover:bg-gray-500/15 disabled:opacity-40"
+            }`}
             onClick={onAnalyze}
             disabled={isAnalyzing}
           >
-            {isAnalyzing ? "Analyzing..." : "Analyze Complexity"}
+            {isAnalyzing ? (
+              <>
+                <Loader2 size={13} className="animate-spin text-accent-primary" />
+                <span>Synthesizing Proof...</span>
+              </>
+            ) : (
+              <span>Analyze Complexity</span>
+            )}
           </button>
 
           {/* Step-by-Step Simulator */}

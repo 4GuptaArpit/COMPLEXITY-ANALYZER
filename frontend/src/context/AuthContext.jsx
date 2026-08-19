@@ -10,6 +10,7 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem("BIGO_JWT_TOKEN"));
   const [loading, setLoading] = useState(true);
 
+  // Sync profile on token change or initial load
   useEffect(() => {
     const fetchProfile = async () => {
       if (!token) {
@@ -34,13 +35,26 @@ export function AuthProvider({ children }) {
     fetchProfile();
   }, [token]);
 
+  // Handle unauthorized global event dispatched from axios interceptor
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      localStorage.removeItem("BIGO_JWT_TOKEN");
+      setToken(null);
+      setUser(null);
+      showToast("Session expired. Please log in again.", "info");
+    };
+
+    window.addEventListener("bigo:unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("bigo:unauthorized", handleUnauthorized);
+  }, [showToast]);
+
   const register = async (name, contact, password) => {
     try {
       const { data } = await client.post("/auth/register", { name, contact, password });
       localStorage.setItem("BIGO_JWT_TOKEN", data.token);
       setToken(data.token);
       setUser(data.user);
-      showToast("Account created successfully! Logged in.", "success");
+      showToast("Account created successfully! Welcome to BigO.ai.", "success");
       return true;
     } catch (err) {
       const errorMsg = err.response?.data?.error || "Registration failed.";
@@ -67,7 +81,7 @@ export function AuthProvider({ children }) {
   const sendOtp = async (contact) => {
     try {
       await client.post("/auth/send-otp", { contact });
-      showToast("OTP sent successfully to " + contact, "success");
+      showToast("Verification code dispatched to " + contact, "success");
       return true;
     } catch (err) {
       const errorMsg = err.response?.data?.error || "Failed to send verification code.";
@@ -85,7 +99,36 @@ export function AuthProvider({ children }) {
       showToast("Verification successful! Logged in.", "success");
       return true;
     } catch (err) {
-      const errorMsg = err.response?.data?.error || "Invalid verification code.";
+      const errorMsg = err.response?.data?.error || "Invalid or expired verification code.";
+      showToast(errorMsg, "error");
+      return false;
+    }
+  };
+
+  const forgotPassword = async (contact) => {
+    try {
+      const { data } = await client.post("/auth/forgot-password", { contact });
+      showToast(data.message || "Reset instructions sent to your email.", "info");
+      return true;
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || "Failed to request password reset.";
+      showToast(errorMsg, "error");
+      return false;
+    }
+  };
+
+  const resetPassword = async (contact, otp, newPassword) => {
+    try {
+      const { data } = await client.post("/auth/reset-password", { contact, otp, newPassword });
+      if (data.token) {
+        localStorage.setItem("BIGO_JWT_TOKEN", data.token);
+        setToken(data.token);
+        setUser(data.user);
+      }
+      showToast(data.message || "Password reset successfully!", "success");
+      return true;
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || "Failed to reset password.";
       showToast(errorMsg, "error");
       return false;
     }
@@ -122,6 +165,21 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const deleteAccount = async (password) => {
+    try {
+      await client.delete("/user/account", { data: { password } });
+      localStorage.removeItem("BIGO_JWT_TOKEN");
+      setToken(null);
+      setUser(null);
+      showToast("Your account has been deleted permanently.", "info");
+      return { success: true };
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || "Failed to delete account.";
+      showToast(errorMsg, "error");
+      return { success: false, message: errorMsg };
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -132,9 +190,12 @@ export function AuthProvider({ children }) {
         login,
         sendOtp,
         verifyOtp,
+        forgotPassword,
+        resetPassword,
         updateProfile,
         logout,
         changePassword,
+        deleteAccount,
       }}
     >
       {children}

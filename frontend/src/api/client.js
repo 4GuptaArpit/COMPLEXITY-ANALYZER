@@ -27,11 +27,12 @@ client.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       localStorage.removeItem("BIGO_JWT_TOKEN");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("bigo:unauthorized"));
+      }
     }
     return Promise.reject(error);
   }
 );
 
 export default client;
-
-

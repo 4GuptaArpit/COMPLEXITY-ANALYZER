@@ -1,32 +1,94 @@
+import React from "react";
 
 /**
- * Parses inline markdown symbols (**bold** and `code`) into React elements.
+ * Normalizes LaTeX math syntax into clean Unicode and readable mathematical expressions.
  */
-const parseInlineMarkdown = (text) => {
-  if (!text) return "";
-  
-  // Regex to split text by **bold** or `code` blocks
-  const regex = /(\*\*.*?\*\*|`.*?`)/g;
+function cleanLatexMath(text) {
+  if (!text || typeof text !== "string") return "";
+
+  return text
+    // Remove enclosing math delimiters ($$math$$ or $math$)
+    .replace(/\$\$(.*?)\$\$/g, "$1")
+    .replace(/\$(.*?)\$/g, "$1")
+    // Fractions: \frac{a}{b} -> (a / b)
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "($1 / $2)")
+    // Common Greek and Big-O symbols
+    .replace(/\\Theta\b/g, "Θ")
+    .replace(/\\Omega\b/g, "Ω")
+    .replace(/\\alpha\b/g, "α")
+    .replace(/\\beta\b/g, "β")
+    .replace(/\\lambda\b/g, "λ")
+    .replace(/\\mu\b/g, "μ")
+    // Mathematical operators
+    .replace(/\\cdot\b/g, " · ")
+    .replace(/\\times\b/g, " × ")
+    .replace(/\\approx\b/g, " ≈ ")
+    .replace(/\\neq\b/g, " ≠ ")
+    .replace(/\\le\b|\\leq\b/g, " ≤ ")
+    .replace(/\\ge\b|\\geq\b/g, " ≥ ")
+    .replace(/\\sum_\{([^}]+)\}\^\{([^}]+)\}/g, "∑($1 to $2)")
+    .replace(/\\sum\b/g, "∑")
+    .replace(/\\prod\b/g, "∏")
+    .replace(/\\infty\b/g, "∞")
+    .replace(/\\sqrt\{([^}]+)\}/g, "√($1)")
+    // Superscripts and exponents
+    .replace(/\^2\b/g, "²")
+    .replace(/\^3\b/g, "³")
+    .replace(/\^\{([^}]+)\}/g, "^$1")
+    // Subscripts
+    .replace(/_\{([^}]+)\}/g, "_$1")
+    // Clean up remaining escaped braces and backslashes
+    .replace(/\\\{/g, "{")
+    .replace(/\\\}/g, "}")
+    .replace(/\\/g, "");
+}
+
+/**
+ * Parses inline markdown symbols (**bold**, *italic*, and `code`) into React elements.
+ */
+const parseInlineMarkdown = (rawText) => {
+  if (!rawText) return "";
+
+  // First convert LaTeX math syntax into clean Unicode
+  const text = cleanLatexMath(rawText);
+
+  // Regex to match `code`, **bold**, *italic*, or plain text
+  const regex = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|_[^_]+_)/g;
   const parts = text.split(regex);
-  
+
   return parts.map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
+    if (!part) return null;
+
+    if (part.startsWith("`") && part.endsWith("`") && part.length >= 2) {
+      return (
+        <code
+          key={i}
+          className="bg-black/25 dark:bg-black/50 border border-border-color/60 px-1.5 py-0.5 rounded text-[11px] font-mono text-secondary"
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+
+    if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
       return (
         <strong key={i} className="font-bold text-text-main">
           {part.slice(2, -2)}
         </strong>
       );
     }
-    if (part.startsWith("`") && part.endsWith("`")) {
+
+    if (
+      (part.startsWith("*") && part.endsWith("*") && part.length >= 2) ||
+      (part.startsWith("_") && part.endsWith("_") && part.length >= 2)
+    ) {
       return (
-        <code 
-          key={i} 
-          className="bg-black/25 dark:bg-black/50 border border-border-color px-1.5 py-0.5 rounded text-[11px] font-mono text-secondary"
-        >
+        <em key={i} className="italic text-text-main/90">
           {part.slice(1, -1)}
-        </code>
+        </em>
       );
     }
+
     return part;
   });
 };
@@ -36,7 +98,8 @@ const parseInlineMarkdown = (text) => {
  */
 export const parseMarkdown = (text) => {
   if (!text) return null;
-  
+
+  // Split into lines
   const lines = text.split("\n");
   let listItems = [];
   const blocks = [];
@@ -44,7 +107,10 @@ export const parseMarkdown = (text) => {
   const flushList = (key) => {
     if (listItems.length > 0) {
       blocks.push(
-        <ul key={`list-${key}`} className="list-disc pl-5 my-2 flex flex-col gap-1 text-[13.5px] text-text-muted">
+        <ul
+          key={`list-${key}`}
+          className="list-disc pl-5 my-1.5 flex flex-col gap-1 text-[12.5px] text-text-muted leading-relaxed"
+        >
           {listItems}
         </ul>
       );
@@ -54,55 +120,40 @@ export const parseMarkdown = (text) => {
 
   lines.forEach((line, index) => {
     const trimmed = line.trim();
-    
-    // Headers (H2) e.g., "# Header"
-    if (trimmed.startsWith("# ")) {
-      flushList(index);
-      blocks.push(
-        <h2 
-          key={index} 
-          className="text-[14.5px] font-bold text-text-main mt-4 mb-2 border-b border-border-color pb-1.5 uppercase tracking-wider text-primary"
-        >
-          {parseInlineMarkdown(trimmed.substring(2))}
-        </h2>
-      );
-      return;
-    }
 
-    // Headers (H3) e.g., "## Header"
-    if (trimmed.startsWith("## ")) {
+    // Headers H1 / H2: "# Title" or "## Section"
+    if (/^#{1,2}\s+/.test(trimmed)) {
       flushList(index);
+      const titleText = trimmed.replace(/^#{1,2}\s+/, "");
       blocks.push(
-        <h3 
-          key={index} 
-          className="text-[13.5px] font-bold text-text-main mt-3.5 mb-1.5 border-b border-border-color/60 pb-1 uppercase tracking-wider text-secondary"
+        <h3
+          key={index}
+          className="text-xs font-bold text-text-main mt-3 mb-1.5 border-b border-border-color/60 pb-1 uppercase tracking-wider text-accent-primary"
         >
-          {parseInlineMarkdown(trimmed.substring(3))}
+          {parseInlineMarkdown(titleText)}
         </h3>
       );
       return;
     }
 
-    // Subheaders (H4) e.g., "### Subheader"
-    if (trimmed.startsWith("### ")) {
+    // Headers H3 / H4 / H5 / H6: "### Subsection" or "#### Sub-item"
+    if (/^#{3,6}\s+/.test(trimmed)) {
       flushList(index);
+      const titleText = trimmed.replace(/^#{3,6}\s+/, "");
       blocks.push(
-        <h4 
-          key={index} 
-          className="text-[13px] font-bold text-secondary mt-3 mb-1 flex items-center gap-1.5"
+        <h4
+          key={index}
+          className="text-xs font-bold text-purple-400 mt-2.5 mb-1 flex items-center gap-1.5"
         >
-          {parseInlineMarkdown(trimmed.substring(4))}
+          {parseInlineMarkdown(titleText)}
         </h4>
       );
       return;
     }
 
-    // List items e.g., "- item" or "* item" or "1. item"
-    if (trimmed.startsWith("- ") || trimmed.startsWith("* ") || /^\d+\.\s/.test(trimmed)) {
-      const content = trimmed.startsWith("- ") || trimmed.startsWith("* ") 
-        ? trimmed.substring(2) 
-        : trimmed.replace(/^\d+\.\s/, "");
-        
+    // List items: "- item", "* item", "1. item", "• item"
+    if (/^([-*•]|\d+\.)\s+/.test(trimmed)) {
+      const content = trimmed.replace(/^([-*•]|\d+\.)\s+/, "");
       listItems.push(
         <li key={index} className="leading-relaxed">
           {parseInlineMarkdown(content)}
@@ -114,20 +165,19 @@ export const parseMarkdown = (text) => {
     // Empty lines
     if (trimmed === "") {
       flushList(index);
-      blocks.push(<div key={index} className="h-1.5" />);
       return;
     }
 
     // Standard paragraph block
     flushList(index);
     blocks.push(
-      <p key={index} className="text-[13.5px] text-text-muted leading-relaxed my-0.5">
-        {parseInlineMarkdown(line)}
+      <p key={index} className="text-xs text-text-muted leading-relaxed my-1">
+        {parseInlineMarkdown(trimmed)}
       </p>
     );
   });
 
-  // Flush any remaining list items
+  // Flush any trailing list items
   flushList(lines.length);
 
   return <div className="flex flex-col gap-1">{blocks}</div>;

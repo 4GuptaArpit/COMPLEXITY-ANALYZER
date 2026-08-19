@@ -1,18 +1,27 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
 import connectDB from "../config/db.js";
 import authRoutes from "../routes/auth.js";
 import userRoutes from "../routes/user.js";
 import historyRoutes from "../routes/history.js";
 import feedbackRoutes from "../routes/feedback.js";
-import billingRoutes from "../routes/billing.js";
 import adminRoutes from "../routes/admin.js";
 import shareRoutes from "../routes/share.js";
+import geminiRoutes from "../routes/gemini.js";
 
-dotenv.config();
+// Startup Environment Validation
+const REQUIRED_ENV = ["MONGO_URI", "JWT_SECRET"];
+for (const key of REQUIRED_ENV) {
+  if (!process.env[key]) {
+    console.error(`FATAL: Missing required environment variable: ${key}`);
+    if (process.env.NODE_ENV === "production") {
+      process.exit(1);
+    }
+  }
+}
 
 connectDB();
 
@@ -20,7 +29,7 @@ const app = express();
 
 app.use(helmet());
 
-// Dynamic CORS configuration accepting localhost, FRONTEND_URL, and Vercel preview deployments
+// Strict CORS configuration
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
@@ -30,22 +39,23 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server) or matching allowed list / vercel preview deployments
       if (!origin || allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
         callback(null, true);
       } else {
-        callback(null, true); // Allow for API accessibility across client environments
+        callback(new Error("CORS policy violation: Access from origin is not permitted."));
       }
     },
     credentials: true,
   })
 );
 
-app.use(express.json());
+app.use(express.json({ limit: "2mb" }));
 
-// Rate limiters
+// Rate Limiters
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 150,
+  max: 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests from this IP, please try again after 15 minutes." },
@@ -56,11 +66,23 @@ const otpLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Too many OTP verification requests. Please wait a few minutes before trying again." },
+  message: { error: "Too many verification attempts. Please wait a few minutes before trying again." },
+});
+
+const feedbackLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many feedback submissions from this IP. Please try again later." },
 });
 
 app.use("/api/", generalLimiter);
 app.use("/api/auth/send-otp", otpLimiter);
+app.use("/api/auth/verify-otp", otpLimiter);
+app.use("/api/auth/forgot-password", otpLimiter);
+app.use("/api/auth/reset-password", otpLimiter);
+app.use("/api/feedback", feedbackLimiter);
 
 if (process.env.NODE_ENV !== "production") {
   app.use((req, res, next) => {
@@ -69,14 +91,14 @@ if (process.env.NODE_ENV !== "production") {
   });
 }
 
-// Route mounts
+// Route Mounts
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/history", historyRoutes);
 app.use("/api/feedback", feedbackRoutes);
-app.use("/api/billing", billingRoutes);
 app.use("/api/share", shareRoutes);
-app.use("/api", adminRoutes);
+app.use("/api/gemini", geminiRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
@@ -92,15 +114,21 @@ app.get("/", (req, res) => {
   res.status(200).json({ status: "BigO.ai API is online & functional" });
 });
 
+// 404 Route Handler
 app.use((req, res) => {
-  res.status(404).json({ error: `Not Found - Path ${req.originalUrl} does not exist.` });
+  res.status(404).json({ error: `Endpoint ${req.originalUrl} does not exist.` });
 });
 
+// Production-safe Error Handler
 app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err);
+  console.error("Unhandled server error:", err.message || err);
   const status = err.status || 500;
+  const message = process.env.NODE_ENV === "production"
+    ? "An internal server error occurred. Please try again."
+    : err.message || "Internal server error";
+
   res.status(status).json({
-    error: err.message || "Internal server error occurred.",
+    error: message,
   });
 });
 
@@ -112,4 +140,3 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 export default app;
-

@@ -7,31 +7,39 @@ const shareSchema = new mongoose.Schema(
       required: true,
       unique: true,
       index: true,
+      trim: true,
     },
     code: {
       type: String,
       required: true,
+      maxlength: 100000,
     },
     language: {
       type: String,
       required: true,
+      maxlength: 50,
     },
     timeComplexity: {
       type: String,
       required: true,
+      maxlength: 50,
     },
     spaceComplexity: {
       type: String,
       required: true,
+      maxlength: 50,
     },
     explanation: {
       type: String,
+      maxlength: 10000,
     },
     optimizedCode: {
       type: String,
+      maxlength: 100000,
     },
     optimizationExplanation: {
       type: String,
+      maxlength: 10000,
     },
     heatmap: {
       type: Map,

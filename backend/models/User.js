@@ -7,6 +7,8 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
       trim: true,
+      lowercase: true,
+      maxlength: 150,
     },
     password: {
       type: String,
@@ -16,25 +18,24 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
       trim: true,
+      maxlength: 100,
     },
     github: {
       type: String,
       default: "",
       trim: true,
+      maxlength: 60,
     },
     bio: {
       type: String,
       default: "",
       trim: true,
+      maxlength: 300,
     },
     tier: {
       type: String,
-      enum: ["anonymous", "free", "premium"],
+      enum: ["anonymous", "free", "admin"],
       default: "free",
-    },
-    tokens: {
-      type: Number,
-      default: 0,
     },
     otp: {
       type: String,
@@ -47,7 +48,7 @@ const userSchema = new mongoose.Schema(
     isAdmin: {
       type: Boolean,
       default: false,
-    }
+    },
   },
   {
     timestamps: true,
